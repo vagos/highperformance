@@ -3,6 +3,6 @@
 # Example: ./printdata mydata_00000.bin
 # Source: I cannot recall
 
-nl="$(od -e $1 | wc -l)"
+nl="$(od -v -t f8 -w8 $1 | wc -l)"
 nl=$((nl-1))
-od -e $1 | head -n $nl | awk '{printf "%f %f\n",  $2, $3}'
+od -v -t fD -w8 -An $1  | head -n $nl | awk '{printf "%f\n", $1}'
