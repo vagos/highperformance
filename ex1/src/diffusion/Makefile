@@ -15,7 +15,7 @@ endif
 CFLAGS+=-Wall -O2 -lm
 CFLAGS_THREADS=$(CFLAGS) -fopenmp -lm
 
-all: diffusion2d_mpi # diffusion2d_serial diffusion2d_openmp diffusion2d_mpi_nb 
+all: diffusion2d_mpi diffusion2d_openmp  # diffusion2d_serial diffusion2d_mpi_nb 
 
 diffusion2d_serial: diffusion2d_openmp.c
 	$(CC) $(CFLAGS) -o $@ $<
@@ -32,6 +32,14 @@ diffusion2d_mpi: diffusion2d_mpi.c
 clean:
 	rm -f diffusion2d_serial diffusion2d_openmp diffusion2d_mpi_nb diffusion2d_mpi *.dat
 	rm -rf *.dSYM
+	rm -f plots/*.png
+	rm -f plots/data/*.dat
+
+.PHONY: plots
+
+plots:
+	mkdir -p plots/data
+	python plot.py
 
 
 # Execution examples
