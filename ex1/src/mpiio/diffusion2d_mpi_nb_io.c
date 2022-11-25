@@ -5,6 +5,18 @@
 #include <mpi.h>
 
 #define DEBUG 0
+#define _PERF_
+
+void print_array(int w, int h, double* array) /* Needed for debugging. */
+{
+    for (int j = 0; j < h; j++) {
+    for (int i = 0; i < w; i++) {
+        printf("%d ", (int)array[j*w + i]);
+    }
+    printf("\n");
+    }
+}
+
 
 typedef struct Diagnostics_s
 {
@@ -234,12 +246,19 @@ void write_density_mpi(Diffusion2D *D2D, char *filename)
     MPI_Offset base;
     MPI_File_get_position(f, &base);
 
-    MPI_Offset len = D2D->Ntot_*sizeof(double);
-    MPI_Offset offset = D2D->rank_*len;
+    MPI_Offset len = D2D->local_N_*D2D->N_;
+    MPI_Offset offset = D2D->rank_*len*sizeof(double);
     MPI_Status status;
 
-    // MPI_File_write_at_all(f, base + offset, &D2D->rho_[1*D2D->real_N_ + 1], D2D->local_N_*D2D->N_, MPI_DOUBLE, &status);
-    MPI_File_write_at_all(f, base + offset, D2D->rho_, D2D->Ntot_, MPI_DOUBLE, &status);
+    int real_N_ = D2D->real_N_;
+
+    for (int i = 1; i <= D2D->local_N_; ++i) {
+    for (int j = 1; j <= D2D->N_; ++j) {
+        D2D->rho_tmp_[(i - 1)*D2D->N_ + j - 1] = D2D->rho_[i*real_N_ + j];
+    }
+    }
+
+    MPI_File_write_at_all(f, base + offset, D2D->rho_tmp_, len, MPI_DOUBLE, &status);
 
     MPI_File_close(&f);
 }
@@ -253,13 +272,21 @@ void read_density_mpi(Diffusion2D *D2D, char *filename)
     MPI_Offset base;
     MPI_File_get_position(f, &base);
 
-    MPI_Offset len = D2D->Ntot_*sizeof(double);
-    MPI_Offset offset = D2D->rank_*len;
+    MPI_Offset len = D2D->local_N_*D2D->N_;
+    MPI_Offset offset = D2D->rank_*len*sizeof(double);
     MPI_Status status;
 
-    MPI_File_read_at_all(f, base + offset, D2D->rho_, D2D->Ntot_, MPI_DOUBLE, &status);
+    MPI_File_read_at_all(f, base + offset, D2D->rho_tmp_, D2D->Ntot_, MPI_DOUBLE, &status);
+
+    int real_N_ = D2D->real_N_;
 
     MPI_File_close(&f);
+
+    for (int i = 1; i <= D2D->local_N_; ++i) {
+    for (int j = 1; j <= D2D->N_; ++j) {
+        D2D->rho_[i*real_N_ + j] = D2D->rho_tmp_[(i - 1)*D2D->N_ + j - 1];
+    }
+    }
 }
 
 int main(int argc, char* argv[])
@@ -298,16 +325,14 @@ int main(int argc, char* argv[])
     double t0 = MPI_Wtime();
     int step;
     for (step = first_step; step < T; ++step) {
+
+        if (step == break_at_step) break;
+
         advance(&system);
 #ifndef _PERF_
         compute_diagnostics(&system, step, dt * step);
 #endif
-        if (step == break_at_step) break;
-#if DEBUG
-    char step_filename[256];
-    sprintf(step_filename, "density_mpi_step_%d.dat", step);
-    write_density_mpi(&system, step_filename);
-#endif
+
     }
     double t1 = MPI_Wtime();
 
