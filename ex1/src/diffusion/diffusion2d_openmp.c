@@ -7,7 +7,6 @@
 #endif
 
 #define DEBUG
-#define _PERF_
 
 typedef struct Diagnostics_s
 {

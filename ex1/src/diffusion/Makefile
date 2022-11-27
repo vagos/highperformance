@@ -9,7 +9,7 @@ MPICC?=mpicc
 
 perf?=0
 ifeq "$(perf)" "1"
-	CPPFLAGS += -D_PERF_
+	CFLAGS += -D_PERF_
 endif
 
 CFLAGS+=-Wall -O2 -lm
