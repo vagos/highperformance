@@ -122,7 +122,7 @@ void init(Diffusion2D *D2D,
 
     // Check that the timestep satisfies the restriction for stability.
     if (D2D->rank_ == 0)
-        printf("timestep from stability condition is %lf\n", D2D->dr_ * D2D->dr_ / (4.0 * D2D->D_));
+        printf("timestep from stability condition is %e\n", D2D->dr_ * D2D->dr_ / (4.0 * D2D->D_));
 
     initialize_density(D2D);
 
