@@ -5,9 +5,10 @@ PDFS=build/main.pdf
 
 all: $(PDFS)
 
-build/%.pdf: %.tex
+build/%.pdf: %.tex bibliography.bib
 	mkdir -p build
 	xelatex -output-directory=build $*.tex
+	bibtex8 build/main.aux
 
 clean:
 	rm -r build
