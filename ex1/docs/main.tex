@@ -12,15 +12,16 @@
 
 \title{	
 	\normalfont\normalsize
-	\textsc{Πανεπιστήμιο Πατρών, Τμήμα Ηλεκτρολόγων Μηχανικών και Τεχνολογίας Υπολογιστών}\\ % Your university, school and/or department name(s)
+	\textsc{Πανεπιστήμιο Πατρών, Τμήμα Μηχανικών ΗΥ και Πληροφορικής}\\ % Your university, school and/or department name(s)
 	\vspace{25pt} % Whitespace
 	\rule{\linewidth}{0.5pt}\\ % Thin top horizontal rule
 	\vspace{20pt} % Whitespace
-	{\huge Τίτλος Εργασίας}\\ % The assignment title
+	{\LARGE Λογισμικό και Προγραμματισμός Συστημάτων Υψηλής Επίδοσης\\ Άσκηση 1 - MPI και ΜΔΕ}\\ % The assignment title
 	\vspace{12pt} % Whitespace
 	\rule{\linewidth}{2pt}\\ % Thick bottom horizontal rule
 	\vspace{12pt} % Whitespace
 }
+
 
 \author{Ευάγγελος Λάμπρου \and Ιωάννης Παναρίτης} % Your name
 
@@ -30,48 +31,92 @@
 %	DOCUMENT
 %----------------------------------------------------------------------------------------
 
+\bibliographystyle{abbrv}
+\addto\captionsgreek{\renewcommand{\refname}{Αναφορές}}
+
 \begin{document}
 
 \maketitle 
 
-\section*{Question 1}
+\section{2D Diffusion και MPI}
 
     \subsection*{Μερικά λόγια για την υλοποίηση}
         Επιλέχθηκε το blocking implementation για την υλοποίησή.\\
-        Πραγματοποιήθηκε αλλαγή στις συναρτήσεις \texttt{init(), initialize\_density(), advance(),\\compute\_diagnostics()}.
+        Πραγματοποιήθηκε αλλαγή στις συναρτήσεις \src{init(), initialize\_density(), advance(),\\compute\_diagnostics()}.
+
+        Για την επικοινωνία μεταξύ των διεργασιών χωρίζουμε ολόκληρο το grid σε τετράγωνα, με την κάθε διεργασία να χειρίζεται ένα από αυτά.
+        Η επικοινωνία μεταξύ των διεργασιών γίνεται με την ανταλλαγή των γειτονικών στηλών και γραμμών. \cite{ghostcellpattern}
+
+        \begin{figure}[htpb]
+            \centering
+            \includegraphics[width=0.5\textwidth]{./assets/ghostcells.png}
+            \caption{Η ανταλλαγή ghost cell στηλών και γραμμών μεταξύ των διεργασιών.}
+        \end{figure}
         
         \subsubsection*{Αρχικές μετατροπές}
-            Προσθέτουμε στο \texttt{struct Diffusion2D}:
+            Προσθέτουμε στο \src{struct Diffusion2D}:
             \begin{itemize}
-                \item \texttt{Local\_N, Square\_N} ώστε να γνωρίζουμε το μέγεθος του κάθε τετραγώνου
+                \item \src{Local\_N, Square\_N} ώστε να γνωρίζουμε το μέγεθος του κάθε τετραγώνου
                 \item Buffer για send, receive με τους γείτονές του.
             \end{itemize}
             
-        \subsubsection*{\texttt{Init()}}
+        \subsubsection*{\src{Init()}}
             \begin{itemize}
-                 \item Υπολογισμός \texttt{grid\_size}, για να ξέρουμε σε πόσα μέλη χωρίζεται η κάθε πλευρά.
-                \item Υπολογισμός του \texttt{square\_N} και των υπολοιπών τιμών που χρειαζόμαστε.
-                \item Δέσμευση χώρου για \texttt{right, left} ανταλλαγή δεδομένων.
+                 \item Υπολογισμός \src{grid\_size}, για να ξέρουμε σε πόσα μέλη χωρίζεται η κάθε πλευρά.
+                \item Υπολογισμός του \src{square\_N} και των υπολοιπών τιμών που χρειαζόμαστε.
+                \item Δέσμευση χώρου για \src{right, left} ανταλλαγή δεδομένων.
             \end{itemize}
-        \subsubsection*{\texttt{Initialize\_density()}}
+        \subsubsection*{\src{Initialize\_density()}}
             \begin{itemize}
-                \item Χρήση \texttt{Local\_N\_} αντί για \texttt{N\_}
-                \item Υπολογισμός \texttt{gj} και χρήση του αντί για \texttt{j}
+                \item Χρήση \src{Local\_N\_} αντί για \src{N\_}
+                \item Υπολογισμός \src{gj} και χρήση του αντί για \src{j}
             \end{itemize}
-        \subsubsection*{\texttt{Advance()}}
+        \subsubsection*{\src{Advance()}}
             \begin{itemize}
-                \item Χρήση \texttt{Local\_N\_} αντί για \texttt{N\_}
-                \item Υπολογισμός \texttt{id} των γειτόνων \texttt{(left, right, up, down)}
+                \item Χρήση \src{Local\_N\_} αντί για \src{N\_}
+                \item Υπολογισμός \src{id} των γειτόνων \src{(left, right, up, down)}
                 \item Send και Receive δεδομένων με τους γείτονες
             \end{itemize}
-        \subsubsection*{\texttt{compute\_diagnostics()}}
+        \subsubsection*{\src{compute\_diagnostics()}}
         \begin{itemize}
-            \item Χρήση \texttt{Local\_N\_} αντί για \texttt{N\_}
+            \item Χρήση \src{Local\_N\_} αντί για \src{N\_}
         \end{itemize}
-    
-    \subsection*{Μετρήσεις}
-        \texttt{ /* TO DO */}
+
+    \subsection{Μετρήσεις}
+
+    Οι μετρήσεις έγιναν σε επεξεργαστή \src{Intel(R) Core(TM) i3-2310M CPU @ 2.10GHz.}
+
+    \begin{table}[H]
+        \centering
+        \caption{Χρόνος εκτέλεσης για διαφορετικά μεγέθη της παραμέτρου \src{N} (1 διεργασία)}
+        \begin{tabular}{|c|c|}
+            \hline
+            \src{N} & Χρόνος Εκτέλεσης ($s$) \\ 
+            \hline
+            1024    & 5.721234  \\
+            2048    & 18.197118 \\
+            4096    & 66.547102 \\
+            \hline
+        \end{tabular}
+    \end{table}
+
+    \begin{table}[H]
+        \centering
+        \caption{Χρόνος εκτέλεσης για διαφορετικά μεγέθη της παραμέτρου \src{N} (4 διεργασίες)}
+        \begin{tabular}{|c|c|}
+            \hline
+            \src{N} & Χρόνος Εκτέλεσης ($s$) \\ 
+            \hline
+            1024    & 2.713220  \\
+            2048    & 8.914513  \\
+            4096    & 36.631807 \\
+            \hline
+        \end{tabular}
+    \end{table}
+
             
-        
+\section{Chekpointing με MPI I/O} 
+
+\bibliography{bibliography}
 
 \end{document}
