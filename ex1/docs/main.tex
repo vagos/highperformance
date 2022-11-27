@@ -34,4 +34,44 @@
 
 \maketitle 
 
+\section*{Question 1}
+
+    \subsection*{Μερικά λόγια για την υλοποίηση}
+        Επιλέχθηκε το blocking implementation για την υλοποίησή.\\
+        Πραγματοποιήθηκε αλλαγή στις συναρτήσεις \texttt{init(), initialize\_density(), advance(),\\compute\_diagnostics()}.
+        
+        \subsubsection*{Αρχικές μετατροπές}
+            Προσθέτουμε στο \texttt{struct Diffusion2D}:
+            \begin{itemize}
+                \item \texttt{Local\_N, Square\_N} ώστε να γνωρίζουμε το μέγεθος του κάθε τετραγώνου
+                \item Buffer για send, receive με τους γείτονές του.
+            \end{itemize}
+            
+        \subsubsection*{\texttt{Init()}}
+            \begin{itemize}
+                 \item Υπολογισμός \texttt{grid\_size}, για να ξέρουμε σε πόσα μέλη χωρίζεται η κάθε πλευρά.
+                \item Υπολογισμός του \texttt{square\_N} και των υπολοιπών τιμών που χρειαζόμαστε.
+                \item Δέσμευση χώρου για \texttt{right, left} ανταλλαγή δεδομένων.
+            \end{itemize}
+        \subsubsection*{\texttt{Initialize\_density()}}
+            \begin{itemize}
+                \item Χρήση \texttt{Local\_N\_} αντί για \texttt{N\_}
+                \item Υπολογισμός \texttt{gj} και χρήση του αντί για \texttt{j}
+            \end{itemize}
+        \subsubsection*{\texttt{Advance()}}
+            \begin{itemize}
+                \item Χρήση \texttt{Local\_N\_} αντί για \texttt{N\_}
+                \item Υπολογισμός \texttt{id} των γειτόνων \texttt{(left, right, up, down)}
+                \item Send και Receive δεδομένων με τους γείτονες
+            \end{itemize}
+        \subsubsection*{\texttt{compute\_diagnostics()}}
+        \begin{itemize}
+            \item Χρήση \texttt{Local\_N\_} αντί για \texttt{N\_}
+        \end{itemize}
+    
+    \subsection*{Μετρήσεις}
+        \texttt{ /* TO DO */}
+            
+        
+
 \end{document}
