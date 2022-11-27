@@ -40,7 +40,7 @@
 
 \section{2D Diffusion και MPI}
 
-    \subsection*{Μερικά λόγια για την υλοποίηση}
+    \subsection{Υλοποίηση}
         Επιλέχθηκε το blocking implementation για την υλοποίησή.\\
         Πραγματοποιήθηκε αλλαγή στις συναρτήσεις \src{init(), initialize\_density(), advance(),\\compute\_diagnostics()}.
 
@@ -84,39 +84,29 @@
 
     \subsection{Μετρήσεις}
 
-    Οι μετρήσεις έγιναν σε επεξεργαστή \src{Intel(R) Core(TM) i3-2310M CPU @ 2.10GHz.}
+    Οι μετρήσεις έγιναν σε σύστημα με χαρακτηριστικά: 
 
-    \begin{table}[H]
-        \centering
-        \caption{Χρόνος εκτέλεσης για διαφορετικά μεγέθη της παραμέτρου \src{N} (1 διεργασία)}
-        \begin{tabular}{|c|c|}
-            \hline
-            \src{N} & Χρόνος Εκτέλεσης ($s$) \\ 
-            \hline
-            1024    & 5.721234  \\
-            2048    & 18.197118 \\
-            4096    & 66.547102 \\
-            \hline
-        \end{tabular}
-    \end{table}
-
-    \begin{table}[H]
-        \centering
-        \caption{Χρόνος εκτέλεσης για διαφορετικά μεγέθη της παραμέτρου \src{N} (4 διεργασίες)}
-        \begin{tabular}{|c|c|}
-            \hline
-            \src{N} & Χρόνος Εκτέλεσης ($s$) \\ 
-            \hline
-            1024    & 2.713220  \\
-            2048    & 8.914513  \\
-            4096    & 36.631807 \\
-            \hline
-        \end{tabular}
-    \end{table}
-
-            
+    \begin{itemize}
+        \item Processor: AMD Ryzen 7 2700 Eight-Core Processor 3.20 GHz
+        \item RAM: 16.0 GB
+        \item Operating System: 64-bit Linux
+    \end{itemize}
+    
+    \centering
+    \begin{tabular}{|p{3cm}||p{3cm}|p{3cm}|}
+        \hline
+        \multicolumn{3}{|c|}{Execution Time ($s$)} \\
+        \hline
+        \src{N} & 1 process & 4 processes\\
+        \hline
+        1024 & 1.677881 & 0.741665\\
+        2048 & 6.756217 & 4.03658\\
+        4096 & 26.015809 & 15.681488\\
+        \hline
+    \end{tabular}
+        
 \section{Chekpointing με MPI I/O} 
 
 \bibliography{bibliography}
-
+    
 \end{document}

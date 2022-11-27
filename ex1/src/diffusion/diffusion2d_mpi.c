@@ -6,8 +6,6 @@
 #include <mpi.h>
 #include <omp.h>
 
-#define _PERF_
-
 void print_array(int w, int h, double* array) 
 {
     for (int j = 0; j < h; j++) {
