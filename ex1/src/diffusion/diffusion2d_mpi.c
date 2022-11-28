@@ -208,6 +208,8 @@ void advance(Diffusion2D *D2D)
     // Central differences in space, forward Euler in time with Dirichlet
     // boundaries.
 
+    // Adding thread parallelization for each process makes the program a lot slower for the given grid sizes (1024, 2048, 4096).
+    #pragma omp parallel for
     for (int i = 1; i <= square_N; ++i) { // y 
         for (int j = 1; j <= square_N; ++j) { // x
             rho_tmp_[i*real_N_ + j] = rho_[i*real_N_ + j] +
