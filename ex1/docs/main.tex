@@ -134,22 +134,22 @@
     Για την υλοποίηση χρησιμοποιήσαμε του μηχανισμούς I/O που προσφέρει η βιβλιοθήκη MPI.
 
     Για να αποφύγουμε την αποθήκευση των ghost cell γραμμών, μεταφέρουμε τα
-    non-ghost cells πρώτα στον ενδιάμεσο buffer \src{rho\_tmp} πριν τον κάνουμε
+    non-ghost cells πρώτα στον ενδιάμεσο buffer \src{file\_buffer\_} πριν τον κάνουμε
     serialize τελικά στο αρχείο.
 
         \subsubsection*{\src{write\_density\_mpi()}}
             \begin{itemize}
                 \item Άνοιγμα αρχείου για \src{write}
                 \item Υπολογισμός \src{length} και \src{offset}
-                \item \src{rho\_tmp $\leftarrow $ rho}
-                \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο χρησιμοποιώοντας την blocking κλήση κλήση \src{MPI\_File\_write}
+                \item \src{file\_buffer\_ $\leftarrow $ rho}
+                \item Αποθήκευση του πίνακα \src{file\_buffer\_} στο αρχείο χρησιμοποιώοντας την blocking κλήση κλήση \src{MPI\_File\_write}
             \end{itemize}
         \subsubsection*{\src{read\_density\_mpi()}}
             \begin{itemize}
                 \item Άνοιγμα αρχείου για \src{read}
                 \item Υπολογισμός \src{length} και \src{offset}
-                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp} χρησιμοποιώντας την blocking κλήση κλήση \src{MPI\_File\_read}.
-                \item \src{rho $\leftarrow $ rho\_tmp}
+                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{file\_buffer\_} χρησιμοποιώντας την blocking κλήση κλήση \src{MPI\_File\_read}.
+                \item \src{rho $\leftarrow $ file\_buffer\_}
             \end{itemize}
 
 
