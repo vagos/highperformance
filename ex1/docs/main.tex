@@ -107,43 +107,49 @@
     \end{center}
         
 \section{Chekpointing με MPI I/O}
-    \subsection*{Υλοποίηση συναρτήσεων}
+
+    \subsection{Υλοποίηση}
+
+    Για την υλοποίηση χρησιμοποιήσαμε του μηχανισμούς I/O που προσφέρει η βιβλιοθήκη MPI.
+
+    Για να αποφύγουμε την αποθήκευση των ghost cell γραμμών, μεταφέρουμε τα
+    non-ghost cells πρώτα στον ενδιάμεσο buffer \src{rho\_tmp} πριν τον κάνουμε
+    serialize τελικά στο αρχείο.
+
         \subsubsection*{\src{write\_density\_mpi()}}
             \begin{itemize}
                 \item Άνοιγμα αρχείου για \src{write}
                 \item Υπολογισμός \src{length} και \src{offset}
                 \item \src{rho\_tmp $\leftarrow $ rho}
-                \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο, αρχίζοντας από \src{offset} για \src{len doubles} 
+                \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο χρησιμοποιώοντας την blocking κλήση κλήση \src{MPI\_File\_write}
             \end{itemize}
         \subsubsection*{\src{read\_density\_mpi()}}
             \begin{itemize}
                 \item Άνοιγμα αρχείου για \src{read}
                 \item Υπολογισμός \src{length} και \src{offset}
-                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp}
+                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp} χρησιμοποιώντας την blocking κλήση κλήση \src{MPI\_File\_read}.
                 \item \src{rho $\leftarrow $ rho\_tmp}
             \end{itemize}
-    \subsection*{Έλεγχος}
-        Τρέχει πρώτα το πρόγραμμα για 1 process, και μετά για 4.\\
-        Γίνεται \src{break} στο ίδιο σημείο και κρατιούνται και τα δύο αρχεία \src{restart}.\\
-        Γίνεται έλεγχος με την \src{diff} για τυχόν διαφορές .\\
-        \bigskip
-        
+
+
+    \subsection{Έλεγχος Αποτελεσμάτων}
+
+        Τρέχουμε πρόγραμμα για μία και τέσσερις διεργασίες.
+        Γίνεται \src{break} στο ίδιο σημείο και συγκρίνουμε τα binary αρχεία (\src{.restart} αρχεία) που προκύπτουν.
+
         \begin{verbatim}
-            mpiio$ make
-            mpicc -Wall -O2 -o diffusion2d_mpi_nb_io diffusion2d_mpi_nb_io.c
-            mpiio$ ./run.sh
+            mpiio$ ./run.sh # Run the code for 1 process
             timestep from stability condition is 2.388849e-07
             Timing: 1024 0.031531
             mpiio$ mv density_mpi.dat.restart density_mpi_1.dat.restart
-            mpiio$ ./run.sh
+            mpiio$ ./run.sh # Run the code for 4 processes
             timestep from stability condition is 2.388849e-07
             Timing: 1024 0.011161
             mpiio$ mv density_mpi.dat.restart density_mpi_4.dat.restart
             mpiio$ diff density_mpi_1.dat.restart density_mpi_4.dat.restart
-            mpiio$
         \end{verbatim}
         
-        \src{Diff} επιστρέφει κενό, άρα δεν υπάρχει κάποια διαφορά στα αρχέια
+        Η εντολή \src{diff} επιστρέφει κενό, άρα δεν υπάρχει κάποια διαφορά στα αρχεία.
 
 \bibliography{bibliography}
     
