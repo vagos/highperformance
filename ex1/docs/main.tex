@@ -105,7 +105,22 @@
         \hline
     \end{tabular}
         
-\section{Chekpointing με MPI I/O} 
+\section{Chekpointing με MPI I/O}
+    Υλοποίηση συναρτήσεων \src{write\_density\_mpi()} και \src{read\_density\_mpi()}
+    \subsubsection*{\src{write\_density\_mpi()}}
+        \begin{itemize}
+            \item Άνοιγμα αρχείου για \src{write}
+            \item Υπολογισμός \src{length} και \src{offset}
+            \item \src{rho\_tmp $\leftarrow $ rho}
+            \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο, αρχίζοντας από \src{offset} για \src{len doubles} 
+        \end{itemize}
+    \subsubsection*{\src{read\_density\_mpi()}}
+        \begin{itemize}
+            \item Άνοιγμα αρχείου για \src{read}
+            \item Υπολογισμός \src{length} και \src{offset}
+            \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp}
+            \item \src{rho $\leftarrow $ rho\_tmp}
+        \end{itemize}
 
 \bibliography{bibliography}
     
