@@ -5,7 +5,6 @@
 #include <mpi.h>
 
 #define DEBUG 0
-#define _PERF_
 
 void print_array(int w, int h, double* array) /* Needed for debugging. */
 {

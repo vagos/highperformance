@@ -92,35 +92,58 @@
         \item Operating System: 64-bit Linux
     \end{itemize}
     
-    \centering
-    \begin{tabular}{|p{3cm}||p{3cm}|p{3cm}|}
-        \hline
-        \multicolumn{3}{|c|}{Execution Time ($s$)} \\
-        \hline
-        \src{N} & 1 process & 4 processes\\
-        \hline
-        1024 & 1.677881 & 0.741665\\
-        2048 & 6.756217 & 4.03658\\
-        4096 & 26.015809 & 15.681488\\
-        \hline
-    \end{tabular}
+    \begin{center}
+        \begin{tabular}{|p{3cm}||p{3cm}|p{3cm}|}
+            \hline
+            \multicolumn{3}{|c|}{Execution Time ($s$)} \\
+            \hline
+            \src{N} & 1 process & 4 processes\\
+            \hline
+            1024 & 1.677881 & 0.741665\\
+            2048 & 6.756217 & 4.03658\\
+            4096 & 26.015809 & 15.681488\\
+            \hline
+        \end{tabular}
+    \end{center}
         
 \section{Chekpointing με MPI I/O}
-    Υλοποίηση συναρτήσεων \src{write\_density\_mpi()} και \src{read\_density\_mpi()}
-    \subsubsection*{\src{write\_density\_mpi()}}
-        \begin{itemize}
-            \item Άνοιγμα αρχείου για \src{write}
-            \item Υπολογισμός \src{length} και \src{offset}
-            \item \src{rho\_tmp $\leftarrow $ rho}
-            \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο, αρχίζοντας από \src{offset} για \src{len doubles} 
-        \end{itemize}
-    \subsubsection*{\src{read\_density\_mpi()}}
-        \begin{itemize}
-            \item Άνοιγμα αρχείου για \src{read}
-            \item Υπολογισμός \src{length} και \src{offset}
-            \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp}
-            \item \src{rho $\leftarrow $ rho\_tmp}
-        \end{itemize}
+    \subsection*{Υλοποίηση συναρτήσεων}
+        \subsubsection*{\src{write\_density\_mpi()}}
+            \begin{itemize}
+                \item Άνοιγμα αρχείου για \src{write}
+                \item Υπολογισμός \src{length} και \src{offset}
+                \item \src{rho\_tmp $\leftarrow $ rho}
+                \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο, αρχίζοντας από \src{offset} για \src{len doubles} 
+            \end{itemize}
+        \subsubsection*{\src{read\_density\_mpi()}}
+            \begin{itemize}
+                \item Άνοιγμα αρχείου για \src{read}
+                \item Υπολογισμός \src{length} και \src{offset}
+                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp}
+                \item \src{rho $\leftarrow $ rho\_tmp}
+            \end{itemize}
+    \subsection*{Έλεγχος}
+        Τρέχει πρώτα το πρόγραμμα για 1 process, και μετά για 4.\\
+        Γίνεται \src{break} στο ίδιο σημείο και κρατιούνται και τα δύο αρχεία \src{restart}.\\
+        Γίνεται έλεγχος με την \src{diff} για τυχόν διαφορές .\\
+        \bigskip
+        
+        \begin{verbatim}
+            mpiio$ make
+            mpicc -Wall -O2 -o diffusion2d_mpi_nb_io diffusion2d_mpi_nb_io.c
+            mpiio$ ./run.sh
+            timestep from stability condition is 2.388849e-07
+            Timing: 1024 0.031531
+            mpiio$ mv density_mpi.dat.restart density_mpi_1.dat.restart
+            mpiio$ ./run.sh
+            timestep from stability condition is 2.388849e-07
+            Timing: 1024 0.011161
+            mpiio$ mv density_mpi.dat.restart density_mpi_4.dat.restart
+            mpiio$ diff density_mpi_1.dat.restart density_mpi_4.dat.restart
+            mpiio$
+        \end{verbatim}
+        
+        \src{Diff} επιστρέφει κενό, άρα δεν υπάρχει κάποια διαφορά στα αρχέια
 
 \bibliography{bibliography}
     
