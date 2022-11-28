@@ -99,7 +99,7 @@ void init(Diffusion2D *D2D,
     // Number of rows per process.
     D2D->local_N_ = D2D->square_N;
 
-    // Small correction for the last process.
+    // Small correction for the last process. (Not needed)
     // if (D2D->rank_ == D2D->procs_ - 1)
     //     D2D->local_N_ += D2D->N_ % D2D->procs_;
 
