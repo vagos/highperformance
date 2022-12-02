@@ -78,6 +78,9 @@ int main(int argc, char **argv)
     char *inp_filename = (char *)"../data/elvis.bin.gz"; // input filename (compressed binary)
     char *out_filename = (char *)"elvis.50.bin"; // output filename (text)
 
+    //helping variables
+    double sum = 0;
+
     // parse input parameters
     if ((argc != 1) && (argc != 11)) {
         std::cout << "Usage: " << argv[0] << " -m <rows> -n <cols> -npc <number of principal components> -if <input filename> -of <output filename>\n";
@@ -152,7 +155,21 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < n; i++)
     {
-        // TODO: compute mean and standard deviation of features of A
+        //compute mean
+        
+        for (int j = 0; j < m; j++){
+            sum += A[i][j];
+        }
+
+        AMean[i] = sum / (double) m;
+
+        //compute standard deviation
+        sum = 0;
+        for(int j = 0; j < m; j++){
+            sum += pow( (A[i][j] - AMean[i]) , 2);
+        }
+
+        AStd[i] = sqrt(sum / (double) m);
     }
     t_elapsed += omp_get_wtime();
     std::cout << "MEAN/STD TIME=" << t_elapsed << " seconds\n";
@@ -162,11 +179,18 @@ int main(int argc, char **argv)
     // TODO: 2.
     t_elapsed = -omp_get_wtime();
 
+    double *B = new (std::nothrow) double[n*m];
+
+    //Normalize the data
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < m; j++)
         {
-            // TODO: normalize data here
+            for(int i = 0; i < n; i++){
+                for(int j = 0; j < m; j++){
+                    B[i][j] = (A[i][j] - AMean[i]) / AStd[i];
+                }
+            }
         }
     }
     t_elapsed += omp_get_wtime();
@@ -179,7 +203,16 @@ int main(int argc, char **argv)
     double *C = new (std::nothrow) double[n*n];
     assert(C!=NULL);
 
-    // TODO: Compute covariance matrix here
+    //covariance matrix
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < n; j++){
+            sum = 0;
+            for(int k = 0; k < m; k++){
+                sum += B[i][k] * B[j][k];
+            }
+            C[i][j] = sum / (double) m;
+        }
+    }
 
     t_elapsed += omp_get_wtime();
     std::cout << "C-MATRIX TIME=" << t_elapsed << " seconds\n";
