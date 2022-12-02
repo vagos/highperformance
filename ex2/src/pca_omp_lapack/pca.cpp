@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         //compute mean
         
         for (int j = 0; j < m; j++){
-            sum += A[i][j];
+            sum += A[i*m+j];
         }
 
         AMean[i] = sum / (double) m;
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
         //compute standard deviation
         sum = 0;
         for(int j = 0; j < m; j++){
-            sum += pow( (A[i][j] - AMean[i]) , 2);
+            sum += pow( (A[i*m+j] - AMean[i]) , 2);
         }
 
         AStd[i] = sqrt(sum / (double) m);
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
         {
             for(int i = 0; i < n; i++){
                 for(int j = 0; j < m; j++){
-                    B[i][j] = (A[i][j] - AMean[i]) / AStd[i];
+                    B[i*m+j] = (A[i*m+j] - AMean[i]) / AStd[i];
                 }
             }
         }
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
             for(int k = 0; k < m; k++){
                 sum += B[i][k] * B[j][k];
             }
-            C[i][j] = sum / (double) m;
+            C[i*m+j] = sum / (double) m;
         }
     }
 
