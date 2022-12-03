@@ -156,6 +156,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < n; i++)
     {
         //compute mean
+        sum = 0;
         
         for (int j = 0; j < m; j++){
             sum += A[i*m+j];
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
             sum += pow( (A[i*m+j] - AMean[i]) , 2);
         }
 
-        AStd[i] = sqrt(sum / (double) m);
+        AStd[i] = sqrt(sum / (double) (m-1));
     }
     t_elapsed += omp_get_wtime();
     std::cout << "MEAN/STD TIME=" << t_elapsed << " seconds\n";
@@ -204,13 +205,16 @@ int main(int argc, char **argv)
     assert(C!=NULL);
 
     //covariance matrix
-    for(int i = 0; i < n; i++){
-        for(int j = 0; j < n; j++){
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
             sum = 0;
-            for(int k = 0; k < m; k++){
-                sum += B[i][k] * B[j][k];
+            for (int k = 0; k < m; k++)
+            {
+                sum += B[i*m+k] * B[j*m+k];
             }
-            C[i*m+j] = sum / (double) m;
+            C[i*n+j] = sum / (double) (m-1);
         }
     }
 
