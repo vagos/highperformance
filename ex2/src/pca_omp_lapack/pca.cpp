@@ -263,16 +263,23 @@ int main(int argc, char **argv)
     ///////////////////////////////////////////////////////////////////////////
     // TODO: 5.
     t_elapsed = -omp_get_wtime();
+
     double *PCReduced = new (std::nothrow) double[m*npc];
     assert(PCReduced != NULL);
 
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < npc; j++)
-        {
-            // TODO: compute the principal components
+    double *VReduced = new (std::nothrow) double[n*npc];
+    assert(VReduced != NULL);
+
+    for(int i = 0; i < n; i++){
+
+        for(int j = n - npc; j < n; j++){
+
+            VReduced[i*npc+j] = C[i*n+j];
         }
     }
+
+    //matrix multiplication B with eigenvectors
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, m, npc, n, 1, B, m, VReduced, n, 0, PCReduced, npc);
 
     // TODO: Report the compression ratio
 
