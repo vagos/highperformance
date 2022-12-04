@@ -228,8 +228,8 @@ int main(int argc, char **argv)
 
     // see also for the interface to dsyev_():
     // http://www.netlib.org/lapack/explore-html/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html#ga442c43fca5493590f8f26cf42fed4044
-    char jobz = '?'; // TODO: compute both, eigenvalues and orthonormal eigenvectors
-    char uplo = '?'; // TODO: how did you compute the (symmetric) covariance matrix?
+    char jobz = 'V'; // TODO: compute both, eigenvalues and orthonormal eigenvectors
+    char uplo = 'L'; // TODO: how did you compute the (symmetric) covariance matrix?
     int info, lwork;
 
     double *W = new (std::nothrow) double[n]; // eigenvalues
@@ -243,6 +243,7 @@ int main(int argc, char **argv)
     lwork = -1;
 
     // TODO: call dsyev here
+    dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info);
 
     lwork = (int)work[0];
     delete[] work;
@@ -252,7 +253,8 @@ int main(int argc, char **argv)
     assert(work != NULL);
 
     // second call to dsyev_(), eigenvalues and eigenvectors are computed here
-    // TODO: call dsyev here
+    // Eigenvalues are stored in W, eigenvectors are stored in C
+    dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info);
 
     t_elapsed += omp_get_wtime();
     std::cout << "DSYEV TIME=" << t_elapsed << " seconds\n";
