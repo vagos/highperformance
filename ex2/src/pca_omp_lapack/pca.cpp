@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 
     //print npc
     std::cout << "npc: " << npc << std::endl;
-    
+
     double t_elapsed;
 
     ///////////////////////////////////////////////////////////////////////////
@@ -155,8 +155,8 @@ int main(int argc, char **argv)
     ///////////////////////////////////////////////////////////////////////////
     double start_t = omp_get_wtime();
 
-    // ///////////////////////////////////////////////////////////////////////////
-    // // TODO: 1.
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: 1.
     t_elapsed = -omp_get_wtime();
 
     double *AMean = new (std::nothrow) double[n];
@@ -278,34 +278,35 @@ int main(int argc, char **argv)
 
     for(int i = 0; i < n; i++){
 
-        for(int j = n - npc; j < n; j++){
+        for(int j = 0; j < npc; j++){
 
             VReduced[i*npc+j] = C[i*n+j];
         }
     }
 
     // //matrix multiplication B with eigenvectors
+    //Good doc for cblas_dgemm https://www.intel.com/content/www/us/en/develop/documentation/mkl-tutorial-c/top/multiplying-matrices-using-dgemm.html
     cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, m, npc, n, 1, B, m, VReduced, npc, 0, PCReduced, npc);
 
-    // // TODO: Report the compression ratio
+    // // // TODO: Report the compression ratio
     double compressionRatio = sizeof(A) / (double) (sizeof(PCReduced) + sizeof(VReduced) + sizeof(AStd) + sizeof(AMean));
 
-    // //print compression ratio
+    // // //print compression ratio
     std::cout << "Compression ratio: " << compressionRatio << std::endl;
 
     t_elapsed += omp_get_wtime();
     std::cout << "PCREDUCED TIME=" << t_elapsed << " seconds\n";
-    // ///////////////////////////////////////////////////////////////////////////
+    // // ///////////////////////////////////////////////////////////////////////////
 
     double end_t = omp_get_wtime();
     std::cout << "OVERALL TIME=" << end_t - start_t << " seconds\n";
 
-    // ///////////////////////////////////////////////////////////////////////////
-    // // TODO: 6
+    // // ///////////////////////////////////////////////////////////////////////////
+    // // // TODO: 6
     double *Z = new (std::nothrow) double[m*n]; // memory for reconstructed image
     assert(Z != NULL);
 
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, n, 1, PCReduced, n, VReduced, n, 0, Z, n);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, npc, 1, PCReduced, npc, VReduced, npc, 0, Z, n);
 
     for(int i = 0; i < m; i++){
         for(int j = 0; j < n; j++){
@@ -314,8 +315,8 @@ int main(int argc, char **argv)
     }
 
 
-    // // Write the reconstructed image in ascii format.  You can view the image
-    // // in Matlab with the show_image.m script.
+    // // // Write the reconstructed image in ascii format.  You can view the image
+    // // // in Matlab with the show_image.m script.
     write_ascii(out_filename, Z, m, n);
     // ///////////////////////////////////////////////////////////////////////////
 
