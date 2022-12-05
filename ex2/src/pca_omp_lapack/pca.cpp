@@ -10,6 +10,12 @@
 #include <omp.h>
 #include <zlib.h>
 
+#include <complex>
+#define lapack_complex_float std::complex<float>
+#define lapack_complex_double std::complex<double>
+
+#include <cblas.h>
+#include <lapacke.h>
 // interface for LAPACK routines.
 //#include <>
 
@@ -74,15 +80,15 @@ int main(int argc, char **argv)
 {
     // input parameters (default)
     int m = 469, n = 700;                        // image size (rows, columns)
-    int npc = 50;                                // number of principal components
-    char *inp_filename = (char *)"../data/elvis.bin.gz"; // input filename (compressed binary)
+    int npc = n;                                // number of principal components
+    char *inp_filename = (char *)"../pca_data/elvis.bin.gz"; // input filename (compressed binary)
     char *out_filename = (char *)"elvis.50.bin"; // output filename (text)
 
     //helping variables
     double sum = 0;
 
     // parse input parameters
-    if ((argc != 1) && (argc != 11)) {
+    if ((argc != 1) && (argc != 11) && (argc != 3)) {
         std::cout << "Usage: " << argv[0] << " -m <rows> -n <cols> -npc <number of principal components> -if <input filename> -of <output filename>\n";
         exit(1);
     }
@@ -111,6 +117,10 @@ int main(int argc, char **argv)
     }
 
     if (npc > n) npc = n;
+
+    //print npc
+    std::cout << "npc: " << npc << std::endl;
+    
     double t_elapsed;
 
     ///////////////////////////////////////////////////////////////////////////
@@ -129,6 +139,7 @@ int main(int argc, char **argv)
             A[i*m + j] = I[j*n+i];
         }
     }
+
     delete[] I;
 
     ///////////////////////////////////////////////////////////////////////////
@@ -144,8 +155,8 @@ int main(int argc, char **argv)
     ///////////////////////////////////////////////////////////////////////////
     double start_t = omp_get_wtime();
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: 1.
+    // ///////////////////////////////////////////////////////////////////////////
+    // // TODO: 1.
     t_elapsed = -omp_get_wtime();
 
     double *AMean = new (std::nothrow) double[n];
@@ -174,32 +185,27 @@ int main(int argc, char **argv)
     }
     t_elapsed += omp_get_wtime();
     std::cout << "MEAN/STD TIME=" << t_elapsed << " seconds\n";
-    ///////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: 2.
+    // ///////////////////////////////////////////////////////////////////////////
+    // // TODO: 2.
     t_elapsed = -omp_get_wtime();
 
     double *B = new (std::nothrow) double[n*m];
 
     //Normalize the data
-    for (int i = 0; i < n; i++)
-    {
-        for (int j = 0; j < m; j++)
-        {
-            for(int i = 0; i < n; i++){
-                for(int j = 0; j < m; j++){
-                    B[i*m+j] = (A[i*m+j] - AMean[i]) / AStd[i];
-                }
-            }
+    for(int i = 0; i < n; i++){
+        for(int j = 0; j < m; j++){
+            B[i*m+j] = (A[i*m+j] - AMean[i]) / AStd[i];
         }
     }
+    
     t_elapsed += omp_get_wtime();
     std::cout << "NORMAL. TIME=" << t_elapsed << " seconds\n";
-    ///////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: 3.
+    // ///////////////////////////////////////////////////////////////////////////
+    // // TODO: 3.
     t_elapsed = -omp_get_wtime();
     double *C = new (std::nothrow) double[n*n];
     assert(C!=NULL);
@@ -220,14 +226,14 @@ int main(int argc, char **argv)
 
     t_elapsed += omp_get_wtime();
     std::cout << "C-MATRIX TIME=" << t_elapsed << " seconds\n";
-    ///////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO 4. LAPACK
+    // ///////////////////////////////////////////////////////////////////////////
+    // // TODO 4. LAPACK
     t_elapsed = -omp_get_wtime();
 
-    // see also for the interface to dsyev_():
-    // http://www.netlib.org/lapack/explore-html/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html#ga442c43fca5493590f8f26cf42fed4044
+    // // see also for the interface to dsyev_():
+    // // http://www.netlib.org/lapack/explore-html/d2/d8a/group__double_s_yeigen_ga442c43fca5493590f8f26cf42fed4044.html#ga442c43fca5493590f8f26cf42fed4044
     char jobz = 'V'; // TODO: compute both, eigenvalues and orthonormal eigenvectors
     char uplo = 'L'; // TODO: how did you compute the (symmetric) covariance matrix?
     int info, lwork;
@@ -238,30 +244,30 @@ int main(int argc, char **argv)
     double *work = new (std::nothrow) double[2];
     assert(work != NULL);
 
-    // first call to dsyev_() with lwork = -1 to determine the optimal
-    // workspace (cheap call)
+    // // first call to dsyev_() with lwork = -1 to determine the optimal
+    // // workspace (cheap call)
     lwork = -1;
 
-    // TODO: call dsyev here
+    // // TODO: call dsyev here
     dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info);
 
     lwork = (int)work[0];
     delete[] work;
 
-    // allocate optimal workspace
+    // // allocate optimal workspace
     work = new (std::nothrow) double[lwork];
     assert(work != NULL);
 
-    // second call to dsyev_(), eigenvalues and eigenvectors are computed here
-    // Eigenvalues are stored in W, eigenvectors are stored in C
+    // // second call to dsyev_(), eigenvalues and eigenvectors are computed here
+    // // Eigenvalues are stored in W, eigenvectors are stored in C
     dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info);
 
     t_elapsed += omp_get_wtime();
     std::cout << "DSYEV TIME=" << t_elapsed << " seconds\n";
-    ///////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: 5.
+    // ///////////////////////////////////////////////////////////////////////////
+    // // TODO: 5.
     t_elapsed = -omp_get_wtime();
 
     double *PCReduced = new (std::nothrow) double[m*npc];
@@ -278,40 +284,42 @@ int main(int argc, char **argv)
         }
     }
 
-    //matrix multiplication B with eigenvectors
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, m, npc, n, 1, B, m, VReduced, n, 0, PCReduced, npc);
+    // //matrix multiplication B with eigenvectors
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, m, npc, n, 1, B, m, VReduced, npc, 0, PCReduced, npc);
 
-    // TODO: Report the compression ratio
+    // // TODO: Report the compression ratio
+    double compressionRatio = sizeof(A) / (double) (sizeof(PCReduced) + sizeof(VReduced) + sizeof(AStd) + sizeof(AMean));
+
+    // //print compression ratio
+    std::cout << "Compression ratio: " << compressionRatio << std::endl;
 
     t_elapsed += omp_get_wtime();
     std::cout << "PCREDUCED TIME=" << t_elapsed << " seconds\n";
-    ///////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////
 
     double end_t = omp_get_wtime();
     std::cout << "OVERALL TIME=" << end_t - start_t << " seconds\n";
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: 6
+    // ///////////////////////////////////////////////////////////////////////////
+    // // TODO: 6
     double *Z = new (std::nothrow) double[m*n]; // memory for reconstructed image
     assert(Z != NULL);
 
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < n; j++)
-        {
-            // TODO: Reconstruct image here.  Don't forget to denormalize.  The
-            // dimension of the reconstructed image is m x n (rows x columns).
-            // Z[i*n + j] = ...
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, m, n, n, 1, PCReduced, n, VReduced, n, 0, Z, n);
+
+    for(int i = 0; i < m; i++){
+        for(int j = 0; j < n; j++){
+            Z[i*n+j] = Z[i*n+j] * AStd[j] + AMean[j];
         }
     }
 
 
-    // Write the reconstructed image in ascii format.  You can view the image
-    // in Matlab with the show_image.m script.
+    // // Write the reconstructed image in ascii format.  You can view the image
+    // // in Matlab with the show_image.m script.
     write_ascii(out_filename, Z, m, n);
-    ///////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////
 
-    // cleanup
+    // // cleanup
     delete[] work;
     delete[] W;
     delete[] C;
