@@ -99,7 +99,7 @@ void init(Diffusion2D *D2D,
     // Number of rows per process.
     D2D->local_N_ = D2D->square_N;
 
-    // Small correction for the last process.
+    // Small correction for the last process. (Not needed)
     // if (D2D->rank_ == D2D->procs_ - 1)
     //     D2D->local_N_ += D2D->N_ % D2D->procs_;
 
@@ -209,7 +209,7 @@ void advance(Diffusion2D *D2D)
     // boundaries.
 
     // Adding thread parallelization for each process makes the program a lot slower for the given grid sizes (1024, 2048, 4096).
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 1; i <= square_N; ++i) { // y 
         for (int j = 1; j <= square_N; ++j) { // x
             rho_tmp_[i*real_N_ + j] = rho_[i*real_N_ + j] +

@@ -16,6 +16,15 @@ void print_array(int w, int h, double* array) /* Needed for debugging. */
     }
 }
 
+void print_array_1d(int l, double* array) /* Needed for debugging. */
+{
+    printf("[");
+    for (int i = 0; i < l; ++i) {
+        printf(" %.3lf", array[i]);
+    }
+    printf(" ]");
+}
+
 
 typedef struct Diagnostics_s
 {
@@ -30,7 +39,7 @@ typedef struct Diffusion2D_s
     double dr_, dt_, fac_;
     int rank_, procs_;
     int local_N_;
-    double *rho_, *rho_tmp_;
+    double *rho_, *rho_tmp_, *file_buffer_;
     Diagnostics *diag_;
 } Diffusion2D;
 
@@ -100,6 +109,7 @@ void init(Diffusion2D *D2D,
     D2D->rho_ = (double *)calloc(D2D->Ntot_, sizeof(double));
     D2D->rho_tmp_ = (double *)calloc(D2D->Ntot_, sizeof(double));
     D2D->diag_ = (Diagnostics *)calloc(D2D->T_, sizeof(Diagnostics));
+    D2D->file_buffer_ = (double *)calloc(D2D->N_ * D2D->local_N_, sizeof(double));
 
     // Check that the timestep satisfies the restriction for stability.
     if (D2D->rank_ == 0)
@@ -253,11 +263,11 @@ void write_density_mpi(Diffusion2D *D2D, char *filename)
 
     for (int i = 1; i <= D2D->local_N_; ++i) {
     for (int j = 1; j <= D2D->N_; ++j) {
-        D2D->rho_tmp_[(i - 1)*D2D->N_ + j - 1] = D2D->rho_[i*real_N_ + j];
+        D2D->file_buffer_[(i - 1)*D2D->N_ + j - 1] = D2D->rho_[i*real_N_ + j];
     }
     }
 
-    MPI_File_write_at_all(f, base + offset, D2D->rho_tmp_, len, MPI_DOUBLE, &status);
+    MPI_File_write_at_all(f, base + offset, D2D->file_buffer_, len, MPI_DOUBLE, &status);
 
     MPI_File_close(&f);
 }
@@ -275,7 +285,7 @@ void read_density_mpi(Diffusion2D *D2D, char *filename)
     MPI_Offset offset = D2D->rank_*len*sizeof(double);
     MPI_Status status;
 
-    MPI_File_read_at_all(f, base + offset, D2D->rho_tmp_, D2D->Ntot_, MPI_DOUBLE, &status);
+    MPI_File_read_at_all(f, base + offset, D2D->file_buffer_, len, MPI_DOUBLE, &status);
 
     int real_N_ = D2D->real_N_;
 
@@ -283,7 +293,7 @@ void read_density_mpi(Diffusion2D *D2D, char *filename)
 
     for (int i = 1; i <= D2D->local_N_; ++i) {
     for (int j = 1; j <= D2D->N_; ++j) {
-        D2D->rho_[i*real_N_ + j] = D2D->rho_tmp_[(i - 1)*D2D->N_ + j - 1];
+        D2D->rho_[i*real_N_ + j] = D2D->file_buffer_[(i - 1)*D2D->N_ + j - 1];
     }
     }
 }

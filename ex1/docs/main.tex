@@ -23,7 +23,7 @@
 }
 
 
-\author{Ευάγγελος Λάμπρου \and Ιωάννης Παναρίτης} % Your name
+\author{Ευάγγελος Λάμπρου \\UP1066519 \and Ιωάννης Παναρίτης \\UP1072632} % Your name
 
 \date{} % Today's date (\today) or a custom date
 
@@ -91,7 +91,7 @@
         \item RAM: 16.0 GB
         \item Operating System: 64-bit Linux
     \end{itemize}
-    
+
     \begin{center}
         \begin{tabular}{|p{3cm}||p{3cm}|p{3cm}|}
             \hline
@@ -105,6 +105,27 @@
             \hline
         \end{tabular}
     \end{center}
+
+    Στη συνέχεια προσθέσαμε παραλληλισμό με threads για την κάθε διεργασία στην επανάληψη για τον υπολογισμό του νέου πίνακα \src{rho}. Τα αποτελέσματα είναι τα εξής:
+    
+    \begin{center}
+        \begin{tabular}{|p{3cm}||p{3cm}|p{3cm}|}
+            \hline
+            \multicolumn{3}{|c|}{Execution Time ($s$)} \\
+            \hline
+            \src{N} & 1 process & 4 processes\\
+            \hline
+            1024 &    0.521331 &    4.260742 \\
+            2048 &    4.017462 &    5.913613 \\
+            4096 &    15.52263 &    16.333386 \\
+            \hline
+        \end{tabular}
+    \end{center}
+
+    Φαίνεται πως στην περίπτωση των 4 διεργασιών ο χρόνος εκτέλεσης αυξάνεται.
+    Πιθανότατα η παραληλοποίηση σε επίπεδο νημάτων να είναι ανούσια εφόσων το σύστημα δεν έχει αρκετούς πυρήνες για την εκτέλεση του παράλληλου κώδικα.
+    Έτσι, το παράλληλο κομμάτι παραμένει ουσιαστικά συριακό, έχoντας όμως το overhead του συγχρονισμού των νημάτων.
+    Ενδεχομένως η λύση αυτή σε ένα μηχάνημα με περισσότερους πυρήνες να ήταν καλύτερη.
         
 \section{Chekpointing με MPI I/O}
 
@@ -113,22 +134,22 @@
     Για την υλοποίηση χρησιμοποιήσαμε του μηχανισμούς I/O που προσφέρει η βιβλιοθήκη MPI.
 
     Για να αποφύγουμε την αποθήκευση των ghost cell γραμμών, μεταφέρουμε τα
-    non-ghost cells πρώτα στον ενδιάμεσο buffer \src{rho\_tmp} πριν τον κάνουμε
+    non-ghost cells πρώτα στον ενδιάμεσο buffer \src{file\_buffer\_} πριν τον κάνουμε
     serialize τελικά στο αρχείο.
 
         \subsubsection*{\src{write\_density\_mpi()}}
             \begin{itemize}
                 \item Άνοιγμα αρχείου για \src{write}
                 \item Υπολογισμός \src{length} και \src{offset}
-                \item \src{rho\_tmp $\leftarrow $ rho}
-                \item Αποθήκευση του πίνακα \src{rho\_tmp} στο αρχείο χρησιμοποιώοντας την blocking κλήση κλήση \src{MPI\_File\_write}
+                \item \src{file\_buffer\_ $\leftarrow $ rho}
+                \item Αποθήκευση του πίνακα \src{file\_buffer\_} στο αρχείο χρησιμοποιώοντας την blocking κλήση κλήση \src{MPI\_File\_write}
             \end{itemize}
         \subsubsection*{\src{read\_density\_mpi()}}
             \begin{itemize}
                 \item Άνοιγμα αρχείου για \src{read}
                 \item Υπολογισμός \src{length} και \src{offset}
-                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{rho\_tmp} χρησιμοποιώντας την blocking κλήση κλήση \src{MPI\_File\_read}.
-                \item \src{rho $\leftarrow $ rho\_tmp}
+                \item Δίαβασμα \src{len doubles} από \src{offset} και αποθήκευση στο \src{file\_buffer\_} χρησιμοποιώντας την blocking κλήση κλήση \src{MPI\_File\_read}.
+                \item \src{rho $\leftarrow $ file\_buffer\_}
             \end{itemize}
 
 

@@ -15,7 +15,7 @@ DT=1e-9
 # DEBUG="alacritty -e -e ./diffusion2d_mpi $D $L $N $T $DT"
 # DEBUG="valgrind --leak-check=yes"
 # RUN_CMD="export OMP_NUM_THREADS=4; ./diffusion2d_openmp $D $L $N $T $DT"
-ARGS="--mca opal_warn_on_missing_libcuda 0 --use-hwthread-cpus"
+ARGS="--mca opal_warn_on_missing_libcuda 0"
 
 benchmark() 
 {
