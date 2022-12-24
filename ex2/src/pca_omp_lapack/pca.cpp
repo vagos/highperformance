@@ -289,7 +289,7 @@ int main(int argc, char **argv)
     cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, m, npc, n, 1, B, m, VReduced, npc, 0, PCReduced, npc);
 
     // // // TODO: Report the compression ratio
-    double compressionRatio = sizeof(A) / (double) (sizeof(PCReduced) + sizeof(VReduced) + sizeof(AStd) + sizeof(AMean));
+    double compressionRatio = (m*n) / (double) (m * npc + n * npc + n + n);
 
     // // //print compression ratio
     std::cout << "Compression ratio: " << compressionRatio << std::endl;
