@@ -18,7 +18,7 @@ void computeGravitationalForces(Particles& particles)
 		particles.fz[i] = 0;
 
 		for (int j=0; j<particles.n; j++)
-			if (i!=j)
+			if (i != j)
 			{
 				double tmp = pow(particles.x[i]-particles.x[j], 2.0) +
 							 pow(particles.y[i]-particles.y[j], 2.0) +
