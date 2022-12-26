@@ -81,8 +81,8 @@ int main(int argc, char **argv)
     // input parameters (default)
     int m = 469, n = 700;                        // image size (rows, columns)
     int npc = n;                                // number of principal components
-    char *inp_filename = (char *)"../pca_data/elvis.bin.gz"; // input filename (compressed binary)
-    char *out_filename = (char *)"elvis.50.bin"; // output filename (text)
+    char *inp_filename = (char *)"../pca_data/elvis_new_ij.bin.gz"; // input filename (compressed binary)
+    char *out_filename = (char *)"elvis_new_ij.bin.bin"; // output filename (text)
 
     //helping variables
     double sum = 0;
@@ -164,6 +164,7 @@ int main(int argc, char **argv)
     assert(AMean != NULL);
     assert(AStd  != NULL);
 
+    #pragma omp parallel for schedule(static) private(sum) shared(AMean, AStd)
     for (int i = 0; i < n; i++)
     {
         //compute mean
@@ -194,6 +195,7 @@ int main(int argc, char **argv)
     double *B = new (std::nothrow) double[n*m];
 
     //Normalize the data
+    #pragma omp parallel for schedule(static) shared(B, AStd, AMean) collapse(2)
     for(int i = 0; i < n; i++){
         for(int j = 0; j < m; j++){
             B[i*m+j] = (A[i*m+j] - AMean[i]) / AStd[i];
@@ -211,6 +213,7 @@ int main(int argc, char **argv)
     assert(C!=NULL);
 
     //covariance matrix
+    #pragma omp parallel for collapse(2) private(sum)
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < n; j++)
@@ -276,6 +279,8 @@ int main(int argc, char **argv)
     double *VReduced = new (std::nothrow) double[n*npc];
     assert(VReduced != NULL);
 
+
+    #pragma omp parallel for collapse(2) shared(VReduced)
     for(int i = 0; i < n; i++){
 
         for(int j = 0; j < npc; j++){
@@ -290,7 +295,6 @@ int main(int argc, char **argv)
 
     // // // TODO: Report the compression ratio
     double compressionRatio = (m*n) / (double) (m * npc + n * npc + n + n);
-
     // // //print compression ratio
     std::cout << "Compression ratio: " << compressionRatio << std::endl;
 

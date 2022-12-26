@@ -5,4 +5,4 @@ clear('all');
 filename = 'elvis.50.txt'
 
 A = load(filename);
-imshow(A);
+imshow(A,'DisplayRange',[0 255]);
