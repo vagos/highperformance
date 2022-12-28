@@ -4,5 +4,7 @@
 #SBATCH --time=00:10:00
 #SBATCH --account=s659
 
-./diffusion_serial 10
-./diffusion_cuda_solution 10
+./build/diffusion_serial 10
+./build/diffusion_cuda 10
+./build/diffusion_serial 11
+./build/diffusion_cuda 11

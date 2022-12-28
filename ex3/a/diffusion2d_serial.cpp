@@ -110,7 +110,7 @@ void Diffusion2D::PropagateDensity(int steps)
     {
         for(size_type i = 0; i < N_; ++i)
             for(size_type j = 0; j < N_; ++j)
-                rho_tmp[i*N_ + j] =
+                rho_tmp[i*N_ + j] = 
                 rho_[i*N_ + j]
                 +
                 fac_
@@ -131,6 +131,7 @@ void Diffusion2D::PropagateDensity(int steps)
 
         time_ += dt_;
     }
+
 }
 
 void Diffusion2D::InitializeSystem()
@@ -179,16 +180,16 @@ int main(int argc, char* argv[])
         System.PropagateDensity(steps_between_measurements);
         time = System.GetTime();
         float moment = System.GetMoment();
-        std::cout << time << '\t' << moment << std::endl;
+        // std::cout << time << '\t' << moment << std::endl;
     }
 
     runtime.stop();
 
     double elapsed = runtime.get_timing();
 
-    std::cerr << argv[0] << "\t N=" <<N_ << "\t time=" << elapsed << "s" << std::endl;
+    std::cerr << argv[0] << "\tN=" <<N_ << "\t time=" << elapsed << "s" << std::endl;
 
-    std::string density_file = "Density.dat";
+    std::string density_file = "build/Density_seq_" + std::to_string(N_) + ".dat";
     System.WriteDensity(density_file);
 
     return 0;

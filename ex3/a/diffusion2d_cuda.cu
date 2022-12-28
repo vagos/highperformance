@@ -12,10 +12,34 @@ typedef std::size_t size_type;
 
 static const int diffusion_block_x = 16;
 static const int diffusion_block_y = 16;
+cudaError_t err = cudaSuccess;
 
 __global__ void diffusion_kernel(float * rho_out, float const * rho, float fac, int N)
 {
-		// TODO: compute rho_out i, j
+	//compute rho_out i, j
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if(i < N && j < N)
+    {
+        rho_out[i*N + j] =
+                rho[i*N + j]
+                +
+                fac
+                *
+                (
+                 (j == N-1 ? 0 : rho[i*N + (j+1)])
+                 +
+                 (j == 0 ? 0 : rho[i*N + (j-1)])
+                 +
+                 (i == N-1 ? 0 : rho[(i+1)*N + j])
+                 +
+                 (i == 0 ? 0 : rho[(i-1)*N + j])
+                 -
+                 4*rho[i*N + j]
+                 );
+        
+    }
 }
 
 class Diffusion2D
@@ -44,12 +68,22 @@ public:
 
         // Allocate memory on Device
 
-				// TODO: allocate d_rho_ and d_rho_tmp_ on the GPU and set them to zero
-        rho_ = new float[N_tot];
-        rho_tmp = new float[N_tot];
+		//allocate d_rho_ and d_rho_tmp_ on the GPU and set them to zero
+        err = cudaMalloc((void**)&d_rho_, N_tot*sizeof(float));
+        if (err != cudaSuccess)
+        {
+            fprintf(stderr, "Failed to allocate vector rho (error code %s)!", cudaGetErrorString(err));
+            exit(EXIT_FAILURE);
+        }
+        cudaMalloc((void**)&d_rho_tmp_, N_tot*sizeof(float));
 
-        std::fill(rho_, rho_+N_tot,0.0);
-        std::fill(rho_tmp, rho_tmp+N_tot,0.0);
+        err = cudaMemset(d_rho_, 0, N_tot*sizeof(float));
+        if (err != cudaSuccess)
+        {
+            fprintf(stderr, "Failed to allocate vector rho (error code %s)!", cudaGetErrorString(err));
+            exit(EXIT_FAILURE);
+        }
+        cudaMemset(d_rho_tmp_, 0, N_tot*sizeof(float));
 
 
         InitializeSystem();
@@ -63,21 +97,7 @@ public:
 
     void PropagateDensity(int steps);
 
-    float GetMoment() {
-				// TODO: Get data (rho_) from the GPU device
-
-
-        float sum = 0;
-
-        for(size_type i = 0; i < N_; ++i)
-            for(size_type j = 0; j < N_; ++j) {
-                float x = j*dr_ + rmin_;
-                float y = i*dr_ + rmin_;
-                sum += rho_[i*N_ + j] * (x*x + y*y);
-            }
-
-        return dr_*dr_*sum;
-    }
+    float GetMoment();
 
     float GetTime() const {return time_;}
 
@@ -99,10 +119,38 @@ private:
     mutable std::vector<float> rho_;
 };
 
+float Diffusion2D::GetMoment()
+{
+        //Get data (rho_) from the GPU device
+        err = cudaMemcpy(&rho_[0], d_rho_, N_tot*sizeof(float), cudaMemcpyDeviceToHost);
+
+        if (err != cudaSuccess)
+        {
+            fprintf(stderr, "Failed to copy vector rho from device to host (error code %s)!", cudaGetErrorString(err));
+            exit(EXIT_FAILURE);
+        }
+
+        float sum = 0;
+
+        for(size_type i = 0; i < N_; ++i)
+            for(size_type j = 0; j < N_; ++j) {
+                float x = j*dr_ + rmin_;
+                float y = i*dr_ + rmin_;
+                sum += rho_[i*N_ + j] * (x*x + y*y);
+            }
+
+        return dr_*dr_*sum;
+}
+
 void Diffusion2D::WriteDensity(const std::string file_name) const
 {
-		// TODO: Get data (rho_) from the GPU device
-
+	//Get data (rho_) from the GPU device
+    err = cudaMemcpy(&rho_[0], d_rho_, N_tot*sizeof(float), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy vector rho from device to host (error code %s)!", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
 
     std::ofstream out_file;
     out_file.open(file_name.c_str(), std::ios::out);
@@ -125,11 +173,21 @@ void Diffusion2D::PropagateDensity(int steps)
     /// Dirichlet boundaries; central differences in space, forward Euler
     /// in time
 
-		// TODO: define grid_size and block_size
+	//define grid_size and block_size
+    int threads_x = diffusion_block_x;
+    int threads_y = diffusion_block_y;
+    dim3 threadsPerBlock(threads_x,threads_y);
+
+    int blocks_x = (N_ + threads_x - 1) / threads_x;
+    int blocks_y = (N_ + threads_y - 1) / threads_y;
+    blocks_x = (blocks_x == 0)? 1 : blocks_x;
+    blocks_y = (blocks_y == 0)? 1 : blocks_y;
+
+    dim3 blocksPerGrid(blocks_x,blocks_y);
 
     for(int s = 0; s < steps; ++s)
     {
-        diffusion_kernel<<< ... , ... >>>(d_rho_tmp_, d_rho_, fac_, N_);
+        diffusion_kernel<<< blocksPerGrid , threadsPerBlock >>>(d_rho_tmp_, d_rho_, fac_, N_);
         swap(d_rho_, d_rho_tmp_);
         time_ += dt_;
     }
@@ -153,8 +211,14 @@ void Diffusion2D::InitializeSystem()
 
         }
     }
-		// TODO: Copy data to the GPU device
-    cudaMemcpy(d_rho_, &rho_[0], rho_.size() * sizeof(float), cudaMemcpyHostToDevice);
+
+	//Copy data to the GPU device
+    err = cudaMemcpy(d_rho_, &rho_[0], N_tot * sizeof(float), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy vector rho from host to device (error code %s)!", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char* argv[])
@@ -182,19 +246,19 @@ int main(int argc, char* argv[])
 
     while(time < tmax){
         System.PropagateDensity(steps_between_measurements);
-				cudaDeviceSynchronize();
+		cudaDeviceSynchronize();
         time = System.GetTime();
         float moment = System.GetMoment();
-        std::cout << time << '\t' << moment << std::endl;
+        // std::cout << time << '\t' << moment << std::endl;
     }
 
     runtime.stop();
 
     double elapsed = runtime.get_timing();
 
-    std::cerr << argv[0] << "\t N=" <<N_ << "\t time=" << elapsed << "s" << std::endl;
+    std::cerr << argv[0] << "\t\tN=" <<N_ << "\t time=" << elapsed << "s" << std::endl;
 
-    std::string density_file = "Density.dat";
+    std::string density_file = "build/Density_cu_" + std::to_string(N_) + ".dat";
     System.WriteDensity(density_file);
 
     return 0;
