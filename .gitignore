@@ -1,3 +1,7 @@
 *.dat
 
 **/build
+
+**/.vscode/*
+
+**/test/*
