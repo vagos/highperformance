@@ -1,0 +1,160 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[11pt]{scrartcl} % Font size
+
+\input{structure.tex} % Include the file specifying the document structure and custom commands
+\usepackage{multirow}
+\usepackage{array}
+% Define a macro to create a table with fixed column widths
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\title{	
+	\normalfont\normalsize
+	\textsc{Πανεπιστήμιο Πατρών, Τμήμα Μηχανικών ΗΥ και Πληροφορικής}\\ % Your university, school and/or department name(s)
+	\vspace{25pt} % Whitespace
+	\rule{\linewidth}{0.5pt}\\ % Thin top horizontal rule
+	\vspace{20pt} % Whitespace
+	{\LARGE Λογισμικό και Προγραμματισμός Συστημάτων Υψηλής Επίδοσης\\ Άσκηση 2 - PCA και SIMD}\\ % The assignment title
+	\vspace{12pt} % Whitespace
+	\rule{\linewidth}{2pt}\\ % Thick bottom horizontal rule
+	\vspace{12pt} % Whitespace
+}
+
+
+\author{Ευάγγελος Λάμπρου \\UP1066519 \and Ιωάννης Παναρίτης \\UP1072632} % Your name
+
+\date{} % Today's date (\today) or a custom date
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT
+%----------------------------------------------------------------------------------------
+
+\bibliographystyle{abbrv}
+\addto\captionsgreek{\renewcommand{\refname}{Αναφορές}}
+
+\begin{document}
+
+\maketitle 
+
+\section{Principal Component Analysis}
+
+\subsection{Υλοποίηση}
+
+
+\subsection{Μετρήσεις}
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+        \textbf{k} & \textbf{compression} \\ \hline
+        1 & 127.793 \\ \hline
+        30 & 9.00192 \\ \hline
+        50 & 5.48538 \\ \hline
+        100 & 2.77515 \\ \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|l|c|c|c|c|c|c|}
+    \hline
+        \textbf{Image} & \multicolumn{6}{|c|}{\textbf{Time Elapsed (s)}} \\
+    \hline
+        & Mean/STD & Normal & C-Matrix & \src{dsyev} & PC-Reduced & \textbf{Overall} \\ \hline
+        \textbf{elvis}             & 0.0006647         & 0.0034834       & 0.199793          & 0.269401       & 0.0158582           & 0.490011         \\ \hline
+        \textbf{cyclone}           & 0.0300084         & 0.13506         & 62.3818           & 65.7206        & 1.17117             & 129.439          \\ \hline
+        \textbf{earth}             & 0.165224          & 0.72195         & 772.333           & 826.566        & 12.1875             & 1594.48          \\ \hline
+
+        \textbf{elvis\_parallel}   & 0.0030338         & 0.0037285       & 0.0293645         & 0.26617        & 0.0175036           & 0.3225           \\ \hline
+        \textbf{cyclone\_parallel} & 0.0063717         & 0.183004        & 15.7129           & 64.3138        & 1.17857             & 81.396           \\ \hline
+        \textbf{earth\_parallel}   & 0.0252138         & 0.99866         & 213.427           & 840.459        & 12.1471             & 1067.06          \\ \hline
+    \end{tabular}
+\end{table}
+
+
+\subsection{Έλεγχος Αποτελεσμάτων}
+
+
+\section{Forces with SIMD and OpenMP}
+
+\subsection{Υλοποίηση}
+
+Ξεκινώντας με την αρχική υλοποίηση, μεταφράσαμε τις πράξεις για τον υπολογισμό της δύναμης μεταξύ δύο σωματιδίων σε εντολές SIMD 
+οι οποίες θα υπολογίζουν σε κάθε επανάληψη τη δύναμη μεταξύ ενός σωματιδίου με 4 άλλα σωματίδια ταυτόχρονα. 
+Εκμεταλευόμαστε το ότι η δύναμη μεταξύ δύο σωματιδίων δεν εξαρτάται από αυτή που ασκείται μεταξύ δύο άλλων (αρχή επαλληλίας).
+
+Χρησιμοποιήσαμε SIMD intrinsics για την AVX οικογένεια επεξεργαστών βασιζόμενοι στο \href{https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=mm256_loadu_pd&ig_expand=4488&techs=AVX_ALL}{documentation που προσφέρει η Intel}.
+
+Τελικά, αφού μεταφράσαμε τον αρχικό κώδικα έτσι ώστε να υπολογίζεται για κάθε σωματίδιο η δύναμη που του ασκείται
+από άλλα τέσσερα, παραλληλοποιήσαμε τον υπολογισμό της συνολικής δύναμης για το σύνολο των σωματιδίων χρησιμοποιώντας 
+OpenMP directives.
+
+\subsection{Μετρήσεις}
+
+Οι παρακάτω μετρήσεις έγιναν σε σύστημα με επεξεργαστή \src{Intel(R) Core(TM) i3-2310M CPU @ 2.10GHz}.
+
+\subsubsection{\src{vanilla} Υλοποίηση}
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|}
+    \hline
+        \textbf{Particles} & \textbf{Time Elapsed (s)} \\ \hline
+        3     & 1.1e-05  \\ \hline 
+        32    & 0.000101 \\ \hline
+        2017  & 0.277711 \\ \hline
+        11111 & 8.47835  \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{\src{fast} Υλοποίηση (SIMD Εντολές) (Χωρίς OpenMP)}
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|}
+    \hline
+        \textbf{Particles} & \textbf{Time Elapsed (s)} \\ \hline
+            3     & 3e-06    \\ \hline
+            32    & 6.8e-05  \\ \hline
+            2017  & 0.16086  \\ \hline
+            11111 & 4.64873  \\ \hline
+    \end{tabular}
+\end{table}
+
+\subsubsection{\src{fast} Υλοποίηση (SIMD Εντολές και OpenMP)}
+
+\begin{table}[!ht]
+    \centering
+    \begin{tabular}{|c|c|}
+    \hline
+        \textbf{Particles} & \textbf{Time Elapsed (s)} \\ \hline
+            3     & 0.000934 \\ \hline
+            32    & 9e-06    \\ \hline
+            2017  & 0.022682 \\ \hline
+            11111 & 0.671763 \\ \hline
+    \end{tabular}
+\end{table}
+
+Βλέπουμε πως η τελική υλοποίηση έχει τα καλύτερα αποτέσματα για μεγάλα μεγέθη εισόδου.
+Στην περίπτωση των τριών (3) σωματιδίων, η τρίτη υλοποίηση είναι πιο αργή, πράγμα κατανοητό αν λάβουμε υπόψιν μας το χρόνο αρχικοποίησης των νημάτων και άλλων επιβαρύνσεων.
+
+\subsection{Έλεγχος Αποτελεσμάτων}
+
+\bibliography{bibliography}
+
+\end{document}
