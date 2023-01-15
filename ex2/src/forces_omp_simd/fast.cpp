@@ -42,7 +42,7 @@ void computeGravitationalForcesFast(Particles& particles)
 
            __m256d p_m_j = _mm256_loadu_pd(particles.m + j);
 
-           __m256d p_x_j = _mm256_loadu_pd(particles.x + j);
+           __m256d p_x_j = _mm256_loadu_pd(&particles.x[j]);
            __m256d p_y_j = _mm256_loadu_pd(&particles.y[j]);
            __m256d p_z_j = _mm256_loadu_pd(&particles.z[j]);
 
@@ -88,6 +88,6 @@ void computeGravitationalForcesFast(Particles& particles)
 
 int main()
 {
-	testAll(computeGravitationalForcesFast, false);
+	testAll(computeGravitationalForcesFast, true);
 	return 0;
 }
