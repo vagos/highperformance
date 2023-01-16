@@ -280,12 +280,11 @@ int main(int argc, char **argv)
     assert(VReduced != NULL);
 
 
+    // Keep the last npc columns of C in VReduced
     #pragma omp parallel for collapse(2) shared(VReduced)
-    for(int i = 0; i < n; i++){
-
-        for(int j = 0; j < npc; j++){
-
-            VReduced[i*npc+j] = C[i*n+j];
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < npc; j++) {
+            VReduced[i * npc + j] = C[i * n + (n - npc + j - 1)];
         }
     }
 

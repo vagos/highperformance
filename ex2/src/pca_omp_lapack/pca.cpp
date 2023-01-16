@@ -276,11 +276,10 @@ int main(int argc, char **argv)
     double *VReduced = new (std::nothrow) double[n*npc];
     assert(VReduced != NULL);
 
-    for(int i = 0; i < n; i++){
-
-        for(int j = 0; j < npc; j++){
-
-            VReduced[i*npc+j] = C[i*n+j];
+    // Keep the last npc columns of C in VReduced
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < npc; j++) {
+            VReduced[i * npc + j] = C[i * n + (n - npc + j - 1)];
         }
     }
 
