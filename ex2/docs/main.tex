@@ -7,6 +7,8 @@
 \input{structure.tex} % Include the file specifying the document structure and custom commands
 \usepackage{multirow}
 \usepackage{array}
+\usepackage{subcaption}
+
 % Define a macro to create a table with fixed column widths
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
@@ -16,6 +18,30 @@
     linkcolor=blue,
     filecolor=magenta,      
     urlcolor=cyan,
+}
+
+
+\newcommand{\showpcaimage}[1]{
+    \begin{figure}[H]
+        \centering
+        \begin{subfigure}[b]{0.45\textwidth}
+            \includegraphics[width=\textwidth]{./assets/#1_1.jpg}
+            \caption{Ποσοστό από Principal Components -- 1\%}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.45\textwidth}
+            \includegraphics[width=\textwidth]{./assets/#1_25.jpg}
+            \caption{Ποσοστό από Principal Components -- 25\%}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.45\textwidth}
+            \includegraphics[width=\textwidth]{./assets/#1_75.jpg}
+            \caption{Ποσοστό από Principal Components -- 75\%}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.45\textwidth}
+            \includegraphics[width=\textwidth]{./assets/#1_100.jpg}
+            \caption{Ποσοστό από Principal Components -- 100\%}
+        \end{subfigure}
+        \caption{Ποσοστό από Principal Components που κρατήσαμε. Εικόνα \src{#1.jpg}}
+    \end{figure}
 }
 
 %----------------------------------------------------------------------------------------
@@ -54,10 +80,21 @@
 
 \subsection{Υλοποίηση}
 
+Για την υλοποίηση αυτής της άσκησης έγινε \say{μετάφραση} του κώδικα Matlab σε C++.
+Βασική διαφορά είναι η χρήση της βιβλιοθήκης Lapack για τις πράξεις γραμμικής άλγεβρας (υπολογισμός ιδιοτιμών/ιδιοδιανυσμάτων, πολλαπλασιασμός πινάκων).
+
+Με OMP έχουμε παραλληλοποιήσει τα βήματα του PCA όπως: 
+
+\begin{itemize}
+    \item Υπολογισμός mean/std 
+    \item Normalization
+    \item Υπολογισμός του Covariance Matrix.
+    \item Επιλογή των $k$ Principal Components.
+\end{itemize}
 
 \subsection{Μετρήσεις}
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{|l|l|}
     \hline
@@ -67,9 +104,10 @@
         50 & 5.48538 \\ \hline
         100 & 2.77515 \\ \hline
     \end{tabular}
+    \caption{Το ποσοστό συμπίεσης για διαφορετικό αριθμό principal components που κρατήσαμε για την εικόνα \src{elvis}.}
 \end{table}
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{|l|c|c|c|c|c|c|}
     \hline
@@ -84,11 +122,23 @@
         \textbf{cyclone\_parallel} & 0.0063717         & 0.183004        & 15.7129           & 64.3138        & 1.17857             & 81.396           \\ \hline
         \textbf{earth\_parallel}   & 0.0252138         & 0.99866         & 213.427           & 840.459        & 12.1471             & 1067.06          \\ \hline
     \end{tabular}
+
+    \caption{Ο χρόνος εκτέλεσης για τα διάφορα βήματα του PCA. Οι μετρήσεις είναι για όλες τις εικόνες χρησιμοποιώντας την σειριακή και την παράλληλη έκδοση του προγράμματος.}
 \end{table}
 
 
 \subsection{Έλεγχος Αποτελεσμάτων}
 
+Τα αποτελέσματα παραγωγής των εικόνων είναι ως εξής. 
+Κάθε φορά κρατάμε ένα ποσοστό των ιδιοτιμών/ιδιοδυανυσμάτων για την κάθε εικόνα (1\%, 50\%, 75\%, 100\%). 
+
+Παρατηρήσαμε ότι το αποτέλεσμα είναι διαφορετικό από αυτό όταν τρέχουμε τον κώδικα Matlab.
+Αυτό πιθανότατα συμβαίνει λόγω της διαφορετικής υλοποίησης του αλγορίθμου υπολογισμού των ιδιοτιμών
+στη Matlab και στη βιβλιοθήκη Lapack. 
+Η Matlab χρησιμποιεί τον αλγόριθμο Jacobi ο οποίος είναι πιο αργός αλλά πιο ακριβής από τον αλγόριθμο QR που χρησιμοποιεί 
+η συνάρτηση \src{dsyev} της Lapack.
+
+\showpcaimage{elvis}
 
 \section{Forces with SIMD and OpenMP}
 
@@ -110,7 +160,7 @@ OpenMP directives.
 
 \subsubsection{\src{vanilla} Υλοποίηση}
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{|c|c|}
     \hline
@@ -124,7 +174,7 @@ OpenMP directives.
 
 \subsubsection{\src{fast} Υλοποίηση (SIMD Εντολές) (Χωρίς OpenMP)}
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{|c|c|}
     \hline
@@ -138,7 +188,7 @@ OpenMP directives.
 
 \subsubsection{\src{fast} Υλοποίηση (SIMD Εντολές και OpenMP)}
 
-\begin{table}[!ht]
+\begin{table}[H]
     \centering
     \begin{tabular}{|c|c|}
     \hline
@@ -150,11 +200,18 @@ OpenMP directives.
     \end{tabular}
 \end{table}
 
-Βλέπουμε πως η τελική υλοποίηση έχει τα καλύτερα αποτέσματα για μεγάλα μεγέθη εισόδου.
+Βλέπουμε πως η τελική υλοποίηση έχει τα καλύτερα αποτλέσματα για μεγάλα μεγέθη εισόδου.
 Στην περίπτωση των τριών (3) σωματιδίων, η τρίτη υλοποίηση είναι πιο αργή, πράγμα κατανοητό αν λάβουμε υπόψιν μας το χρόνο αρχικοποίησης των νημάτων και άλλων επιβαρύνσεων.
 
 \subsection{Έλεγχος Αποτελεσμάτων}
 
-\bibliography{bibliography}
+Ο έλεγχος αποτελεσμάτων γίνεται αυτόματα με βάση τον υπολογισμό των δυνάμεων από τον σειριακό κώδικα.
+Χρησιμοποιήσαμε το πρόγραμμα \src{generate} για τη δημιουργία των πρότυπων τιμών.
+
+{\ttfamily
+\lstinputlisting{assets/passed.txt}
+}
+
+% \bibliography{bibliography}
 
 \end{document}
