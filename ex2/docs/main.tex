@@ -40,7 +40,7 @@
             \includegraphics[width=\textwidth]{./assets/#1_100.jpg}
             \caption{Ποσοστό από Principal Components -- 100\%}
         \end{subfigure}
-        \caption{Ποσοστό από Principal Components που κρατήσαμε. Εικόνα \src{#1.jpg}}
+        \caption{Ποσοστό από Principal Components που κρατήσαμε. Εικόνα \src{#1}}
     \end{figure}
 }
 
@@ -54,7 +54,7 @@
 	\vspace{25pt} % Whitespace
 	\rule{\linewidth}{0.5pt}\\ % Thin top horizontal rule
 	\vspace{20pt} % Whitespace
-	{\LARGE Λογισμικό και Προγραμματισμός Συστημάτων Υψηλής Επίδοσης\\ Άσκηση 2 - PCA και SIMD}\\ % The assignment title
+	{\LARGE Λογισμικό και Προγραμματισμός Συστημάτων Υψηλής Επίδοσης\\ Άσκηση 2 - BLAS και SIMD}\\ % The assignment title
 	\vspace{12pt} % Whitespace
 	\rule{\linewidth}{2pt}\\ % Thick bottom horizontal rule
 	\vspace{12pt} % Whitespace
@@ -93,6 +93,8 @@
 \end{itemize}
 
 \subsection{Μετρήσεις}
+
+Οι παρακάτω μετρήσεις έγιναν σε σύστημα με επεξεργαστή \src{AMD Ryzen 7 2700 Eight-Core Processor @ 3.20 GHz}.
 
 \begin{table}[H]
     \centering
@@ -139,6 +141,7 @@
 η συνάρτηση \src{dsyev} της Lapack.
 
 \showpcaimage{elvis}
+\showpcaimage{cyclone}
 
 \section{Forces with SIMD and OpenMP}
 
@@ -148,7 +151,7 @@
 οι οποίες θα υπολογίζουν σε κάθε επανάληψη τη δύναμη μεταξύ ενός σωματιδίου με 4 άλλα σωματίδια ταυτόχρονα. 
 Εκμεταλευόμαστε το ότι η δύναμη μεταξύ δύο σωματιδίων δεν εξαρτάται από αυτή που ασκείται μεταξύ δύο άλλων (αρχή επαλληλίας).
 
-Χρησιμοποιήσαμε SIMD intrinsics για την AVX οικογένεια επεξεργαστών βασιζόμενοι στο \href{https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=mm256_loadu_pd&ig_expand=4488&techs=AVX_ALL}{documentation που προσφέρει η Intel}.
+Χρησιμοποιήσαμε SIMD intrinsics μέσω των AVX extensions βασιζόμενοι στο \href{https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=mm256_loadu_pd&ig_expand=4488&techs=AVX_ALL}{documentation που προσφέρει η Intel}.
 
 Τελικά, αφού μεταφράσαμε τον αρχικό κώδικα έτσι ώστε να υπολογίζεται για κάθε σωματίδιο η δύναμη που του ασκείται
 από άλλα τέσσερα, παραλληλοποιήσαμε τον υπολογισμό της συνολικής δύναμης για το σύνολο των σωματιδίων χρησιμοποιώντας 
