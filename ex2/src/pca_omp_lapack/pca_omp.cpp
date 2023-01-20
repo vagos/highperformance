@@ -19,6 +19,8 @@
 // interface for LAPACK routines.
 //#include <>
 
+// #define DSYEV_OTHER /* If your implementation of dsyev takes an extra two size_t arguments, uncomment this. */
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // helpers
@@ -252,7 +254,11 @@ int main(int argc, char **argv)
     lwork = -1;
 
     // // TODO: call dsyev here
+#ifdef DSYEV_OTHER 
+    dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info, 0, 0);
+#else
     dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info);
+#endif
 
     lwork = (int)work[0];
     delete[] work;
@@ -263,7 +269,11 @@ int main(int argc, char **argv)
 
     // // second call to dsyev_(), eigenvalues and eigenvectors are computed here
     // // Eigenvalues are stored in W, eigenvectors are stored in C
+#ifdef DSYEV_OTHER 
+    dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info, 0, 0);
+#else
     dsyev_(&jobz, &uplo, &n, C, &n, W, work, &lwork, &info);
+#endif
 
     t_elapsed += omp_get_wtime();
     std::cout << "DSYEV TIME=" << t_elapsed << " seconds\n";
@@ -278,7 +288,6 @@ int main(int argc, char **argv)
 
     double *VReduced = new (std::nothrow) double[n*npc];
     assert(VReduced != NULL);
-
 
     // Keep the last npc columns of C in VReduced
     #pragma omp parallel for collapse(2) shared(VReduced)
