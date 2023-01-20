@@ -21,6 +21,10 @@ pca_omp: pca_omp.o
 pca_omp.o: pca_omp.cpp
 	$(CC) $(CFLAGS) -fopenmp -o pca_omp.o -c pca_omp.cpp
 
+images: pca_omp
+	mkdir -p out
+	bash create_images.sh
+
 clean:
 	rm -f *.o *~ pca_seq pca_omp
 

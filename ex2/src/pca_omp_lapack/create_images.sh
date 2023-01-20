@@ -23,8 +23,8 @@ NPCs=(1 25 75 100)
 
 for PC in ${NPCs[@]}; do
 
-    # image 469 700 ../pca_data/elvis_new_ij.bin.gz out/elvis $PC
-    image 4096 4096 ../pca_data/cyclone.bin.gz out/cyclone $PC
+    image 469 700 ../pca_data/elvis_new_ij.bin.gz out/elvis $PC
+    # image 4096 4096 ../pca_data/cyclone.bin.gz out/cyclone $PC
     # image 9500 9500 ../pca_data/earth.bin.gz out/earth $PC
 
 done
