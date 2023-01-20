@@ -2,7 +2,9 @@
 % Description: Show gray-scale image from binary file
 clear('all');
 
-filename = 'elvis.50.txt'
+args = argv();
+filename = args{1};
+out_filename = args{2};
 
 A = load(filename);
-imshow(A,'DisplayRange',[0 255]);
+imwrite(A / 255, out_filename);
