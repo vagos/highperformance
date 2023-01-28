@@ -3,7 +3,7 @@
 #include <bits/stdc++.h>
 #include <ios>
 
-#define IDX(X, Y) ((X) + (Y * W))
+#define IDX(X, Y) ((X) + ((Y) * W))
 
 template <typename T>
 void printArray(std::ostream& stream, T* a, std::size_t W, std::size_t H)
