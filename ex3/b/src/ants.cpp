@@ -39,10 +39,14 @@ struct Colony
 
         std::copy(A,A + S, A_new);
         std::copy(P,P + S, P_new);
+
+#pragma acc enter data copyin(this[0:1])
+#pragma acc enter data copyin(A[0:S], A_new[0:S], P[0:S], P_new[0:S])
     }
 
     ~Colony()
     {
+#pragma acc exit data delete(A[0:S], A_new[0:S], P[0:S], P_new[0:S])
         free(A);
         free(A_new);
         free(P);
@@ -51,6 +55,7 @@ struct Colony
 
     void show(std::ostream& out_stream)
     {
+#pragma acc update host(A[0:S], P[0:S])
         const std::string seperator(2 * N_cells, '=');
 
         out_stream << "STEP: " << step << '\n';
@@ -82,25 +87,28 @@ struct Colony
         int w = N_cells;
         int h = N_cells;
     
-#pragma acc data create(A_new) create(P_new)
-for (int s = 0; s < steps; s++) 
-{
+        const int N_cells = this->N_cells;
+        const double p_inc = this->p_inc;
+        const double p_dec = this->p_dec;
 
+#pragma acc parallel loop present(A[0:S], N_cells)
         for (int i = 0; i < S; i++)
             A_new[i] = 0;
 
-#pragma acc data
-#pragma acc kernels
+#pragma acc kernels present(this[0:1], A[0:S], A_new[0:S], P[0:S], P_new[0:S])
         {
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
+                
+                const int ant = A[IDX(x, y)];
+
                 if (A[IDX(x, y)] == 1) 
                 {
                     P_new[IDX(x, y)] = P[IDX(x, y)] * (1 + p_inc);
                 }
                 else // no ant
                 {
-                    P_new[IDX(x, y)] = P[IDX(x, y)] * (1 - p_inc);
+                    P_new[IDX(x, y)] = P[IDX(x, y)] * (1 - p_dec);
                     continue; 
                 }
                 
@@ -142,7 +150,6 @@ for (int s = 0; s < steps; s++)
 
         std::swap(P, P_new);
         step++;
-}
     }
 
     private:
@@ -195,7 +202,7 @@ int main (int argc, char *argv[])
 {
     double p_inc = 0.1;
     double p_dec = 0.1;
-    int N_cells = 2056;
+    int N_cells = 2048;
     int N_ants = 100;
 
 
@@ -238,7 +245,7 @@ int main (int argc, char *argv[])
 
     tm.start();
 
-//    for (int s = 0; s < steps; s++)
+    for (int s = 0; s < steps; s++)
     {
 #ifdef DEBUG
         colony->show(log_file);
