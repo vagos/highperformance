@@ -4,9 +4,8 @@
 # Event count (approx.): 14899407707
 #
 # Overhead  Command  Shared Object         Symbol                                                                                                                                                                                                                                                            
-# ........  .......  ....................  ..................................................................................................................................................................................................................................................................
-#
+# ........  .......  ....................  ................................
     45.01%  ants     ants                  [.] Colony::update
-     2.34%  ants     ants                  [.] std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>::_M_gen_rand
-     1.97%  ants     ants                  [.] std::mersenne_twister_engine<unsigned long, 32ul, 624ul, 397ul, 31ul, 2567483615ul, 11ul, 4294967295ul, 7ul, 2636928640ul, 15ul, 4022730752ul, 18ul, 1812433253ul>::operator()
+     2.34%  ants     ants                  [.] std::mersenne_twister_engine
+     1.97%  ants     ants                  [.] std::mersenne_twister_engine
      1.56%  ants     ants                  [.] std::swap<int>

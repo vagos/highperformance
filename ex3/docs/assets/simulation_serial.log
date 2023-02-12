@@ -1,0 +1,36 @@
+STEP: 0
+ANTS in colony: 
+====
+0 1 
+0 0 
+====
+# ANTS: 1
+PHEROMONES in colony: 
+====
+0.183435 0.779691 
+0.59685 0.445833 
+====
+STEP: 1
+ANTS in colony: 
+====
+0 0 
+0 1 
+====
+# ANTS: 1
+PHEROMONES in colony: 
+====
+0.262553 0.389845 
+0.537165 0.498711 
+====
+STEP: 2
+ANTS in colony: 
+====
+0 0 
+1 0 
+====
+# ANTS: 1
+PHEROMONES in colony: 
+====
+0.236297 0.4132 
+0.545787 0.249355 
+====
