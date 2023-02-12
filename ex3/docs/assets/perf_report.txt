@@ -1,8 +1,5 @@
 # Total Lost Samples: 0
 #
-# Samples: 15K of event 'cycles:u'
-# Event count (approx.): 14899407707
-#
 # Overhead  Command  Shared Object         Symbol                                                                                                                                                                                                                                                            
 # ........  .......  ....................  ................................
     45.01%  ants     ants                  [.] Colony::update

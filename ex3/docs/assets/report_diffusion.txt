@@ -1,0 +1,9 @@
+# Total Lost Samples: 0
+#
+# Overhead  Command          Shared Object         Symbol                                                                                                   
+# ........  ...............  ....................  ......
+
+    98.78%  diffusion  diffusion_serial      [.] Diffusion2D::PropagateDensity
+     0.44%  diffusion  diffusion_serial      [.] Diffusion2D::GetMoment
+     0.26%  diffusion  [unknown]             [k] 0xffffffffa7e018b7
+     0.02%  diffusion  libstdc++.so.6.0.30   [.] std::num_put
