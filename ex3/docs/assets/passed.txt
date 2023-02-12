@@ -1,5 +1,0 @@
-Testing case '3'...  PASSED  in 0.004964 sec
-Testing case '32'...  PASSED  in 1.1e-05 sec
-Testing case '2017'...  PASSED  in 0.022035 sec
-Testing case '11111'...  PASSED  in 0.667472 sec
-All tests passed
