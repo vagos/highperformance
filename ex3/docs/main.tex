@@ -111,7 +111,17 @@
 
 \subsection{Υλοποίηση}
 
-\textbf{TODO}
+Για την υλοποίηση αυτής της άσκησης έγινε παραλληλισμός των βημάτων του \src{Diffusion2d} με χρήση \src{cuda} σε \src{gpu}.\\
+Συγκεκριμένα, έχουμε τα εξής βήματα:
+
+\begin{enumerate}
+    \item Κατά την δημιουργία του αντικειμένου Diffusion2D, γίνεται allocate και μηδενισμός των πινάκων σε device memory.
+    \item Αντιγραφή του πίνακα \src{rho} από host σε device
+    \item Κάλεσμα της \src{PropagateDensity}. Εδώ επιλέγουμε τις διαστάσεις που θα έχουμε στην gpu και καλούμε το \src{diffusion\_kernel}.
+    \item Κάθε thread της gpu εκτελείται παράλληλα. Ανάλογα με το id του, υπολογίζει τις καινούριες τιμές για το αντίστοιχο κελί του πίνακα \src{d\_rho}.
+    \item Συγχρονισμός των threads του device.
+    \item Αντιγραφή των δεδομένων στον host για αποθήκευση.
+\end{enumerate}
 
 \subsection{Μετρήσεις}
 
