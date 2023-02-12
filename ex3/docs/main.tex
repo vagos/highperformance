@@ -239,8 +239,10 @@ $ cat diffs.dat | head -n 8
 Έτσι, συγχρονίζουμε τα δεδομένα μεταξύ host και device (κάρτα γραφικών) και κατά την παραλληλοποίηση του κώδικα, 
 μπορούμε να χρησιμοποίησουμε το \src{kernels} directive χωρίς να γίνεται περαιτέρω μεταφορά δεδομένων. \cite{openaccbestpractices}
 
-Τα δεδομένα βρίσκονται μονίμως στην μνήμη της κάρτας γραφικών εκτός από το τέλος της προσομοίωσης, όπου γίνεται μεταφορά των αποτελεσμάτων στο host
-και γράφουμε την τελική κατάσταση της προσομοίωσης σε ένα αρχείο.
+Τα δεδομένα βρίσκονται μονίμως στην μνήμη της κάρτας γραφικών εκτός από το
+τέλος της προσομοίωσης, όπου γίνεται μεταφορά των αποτελεσμάτων στο host (με το
+directive \src{\#pragma acc update host}) και γράφουμε την τελική κατάσταση της
+προσομοίωσης σε ένα αρχείο.
 
 \subsection{Μετρήσεις}
 
@@ -250,7 +252,7 @@ $ cat diffs.dat | head -n 8
     \begin{center}
 \begin{tikzpicture}
 \begin{axis}[
-    xlabel={$\sqrt{N_{cells}}$},
+    xlabel={$\sqrt{N}$},
     ylabel={Time (s)},
     ybar,
     enlarge x limits=0.15,
@@ -264,7 +266,7 @@ $ cat diffs.dat | head -n 8
     ]
     \addplot coordinates {(1024,4.49401) (2048,17.0811) (4096,63.5345)};
     \addplot coordinates {(1024,1.83) (2048,3.00374) (4096,7.05673)};
-    \legend{Serial, Parallel}
+    \legend{Serial, OpenACC}
 \end{axis}
 \end{tikzpicture}
     \end{center}
