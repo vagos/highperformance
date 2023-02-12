@@ -11,6 +11,8 @@
 % Bar chart drawing library 
 \usepackage{pgfplots} 
 \usepackage{textcomp}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 % Define a macro to create a table with fixed column widths
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
@@ -109,34 +111,11 @@
 
 \subsection{Υλοποίηση}
 
-Για την υλοποίηση αυτής της άσκησης έγινε \say{μετάφραση} του κώδικα Matlab σε C++.
-Βασική διαφορά είναι η χρήση της βιβλιοθήκης Lapack για τις πράξεις γραμμικής άλγεβρας (υπολογισμός ιδιοτιμών/ιδιοδιανυσμάτων, πολλαπλασιασμός πινάκων).
-
-Με OMP έχουμε παραλληλοποιήσει τα βήματα του PCA όπως: 
-
-\begin{itemize}
-    \item Υπολογισμός mean/std 
-    \item Normalization
-    \item Υπολογισμός του Covariance Matrix.
-    \item Επιλογή των $k$ Principal Components.
-\end{itemize}
+\textbf{TODO}
 
 \subsection{Μετρήσεις}
 
 Οι παρακάτω μετρήσεις έγιναν σε σύστημα με επεξεργαστή \src{AMD Ryzen 7 2700 Eight-Core Processor @ 3.20 GHz} και κάρτα γραφικών \src{NVIDIA GeForce GTX 1660 6GB}.
-
-% \begin{table}[H]
-%     \centering
-%     \begin{tabular}{|l|l|l|}
-%     \hline
-%         \textbf{Implementation} & \textbf{N} & \textbf{Time (s)} \\ \hline
-%         \src{diffusion\_serial}  &  1024    & 22.1073 \\ \hline 
-%         \src{diffusion\_cuda} 	 &  1024    & 2.76905 \\ \hline
-%         \src{diffusion\_serial}  &  2048    & 367.739 \\ \hline
-%         \src{diffusion\_cuda}    &  2048    & 43.6307 \\ \hline
-%     \end{tabular}
-%     \caption{Χρόνοι εκτέλεσης της υλοποίηση με και χωρίς CUDA.}
-% \end{table}
 
 % create a bar plot of the above time measurements using tikz. make it a centered figure with a caption.
 \begin{figure}[H]
@@ -184,6 +163,38 @@
 Για την υλοποίηση αυτής της άσκησης αρχικά δημιουργήσαμε μία 
 βασική υλοποίηση της προσομοίωσης μυρμηγκιών σε C++.
 
+Για την προσομοίωση έχουμε δύο πίνακες (\src{A} και \src{P}) οι οποίοι αντιπροσωπεύουν 
+τις θέσεςι των μυρμηγκιών και την ποσότητα της φερομόνης αντίστοιχα. 
+
+% create an algorithmic environment with the algorithmicx package. Include an algorithm that updates the state of A and P based on the rules of the simulation.
+% Then A is swapped with A_new and P is swapped with P_new.
+\begin{algorithm}[H]
+\caption{Υλοποίηση της προσομοίωσης μυρμηγκιών.}
+\label{alg:serial}
+\begin{algorithmic}[1]
+\Procedure{update}{$A, P$}
+\For{$x \gets 0$ to $N_{cells}$}
+\For{$y \gets 0$ to $N_{cells}$}
+    \State update $A_{new}$ based on $A$
+\EndFor
+\EndFor
+
+\For{$x \gets 0$ to $N_{cells}$}
+\For{$y \gets 0$ to $N_{cells}$}
+    \State update $P_{new}$ based on $P$
+\EndFor
+\EndFor
+
+    \State swap($A, A_{new}$)
+    \State swap($P, P_{new}$)
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Η αρχική υλοποίηση είχε τους πίνακες \src{A} και \src{P} να ανανεώνονται στο ίδιο loop,
+ωστόσο, αυτό έκανε την παραλληλοποίηση του κώδικα αδύνατη. Έτσι, 
+χωρίσαμε την ανανέωση των πινάκων σε δύο loops, όπου το πρώτο loop ανανεώνει τον πίνακα \src{A} και το δεύτερο τον πίνακα \src{P}.
+
 Με τον perf profiler φαίνεται πως η πλειονότητα του χρόνου σπαταλάται στην συνάρτηση \src{Colony::update},
 πράγμα προφανές.
 
@@ -203,9 +214,40 @@
 Έτσι, συγχρονίζουμε τα δεδομένα μεταξύ host και device (κάρτα γραφικών) και κατά την παραλληλοποίηση του κώδικα, 
 μπορούμε να χρησιμοποίησουμε το \src{kernels} directive χωρίς να γίνεται περαιτέρω μεταφορά δεδομένων.
 
-Τα δεδομένα βρίσκονται μονίμως στην μνήμη της κάρτας γραφικών εκτός από το τέλος της προσομοίωσης, όπου γίνεται μεταφορά των αποτελεσμάτων στο host.
+Τα δεδομένα βρίσκονται μονίμως στην μνήμη της κάρτας γραφικών εκτός από το τέλος της προσομοίωσης, όπου γίνεται μεταφορά των αποτελεσμάτων στο host
+και γράφουμε την τελική κατάσταση της προσομοίωσης σε ένα αρχείο.
 
 \subsection{Μετρήσεις}
+
+% create a bar chart using the pgfplots package for the above data. make the bars be same distance apart
+
+\begin{figure}[H]
+    \begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={$\sqrt{N_{cells}}$},
+    ylabel={Time (s)},
+    ybar,
+    enlarge x limits=0.15,
+    nodes near coords,
+    nodes near coords align={vertical},
+    nodes near coords style={anchor=north},
+    bar width=10pt,
+    xtick=data,
+    xticklabels={1024, 2048, 4096},
+    legend style={at={(0.5,-0.20)},anchor=north,legend columns=-1},
+    ]
+    \addplot coordinates {(1024,4.49401) (2048,17.0811) (4096,63.5345)};
+    \addplot coordinates {(1024,1.83) (2048,3.00374) (4096,7.05673)};
+    \legend{Serial, Parallel}
+\end{axis}
+\end{tikzpicture}
+    \end{center}
+    \caption{Χρόνοι εκτέλεσης της υλοποίηση με και χωρίς OpenACC.}
+    \label{fig:acc_times}
+\end{figure}
+
+
 \subsection{Έλεγχος Αποτελεσμάτων}
 
 Για τον έλεγχο των αποτελεσμάτων έγινε συγκρίνοντας 
@@ -217,6 +259,11 @@
 $ diff simulation_serial.log simulation_acc.log && echo "Same!"
 Same!
 \end{lstlisting}
+
+\lstinputlisting[caption=Έξοδος της προσομοίωσης για χειροκίνητο έλεγχο των αποτελεσμάτων για 2 βήματα.]{assets/simulation_serial.log}
+
+Βλέπουμε πως η προσομοίωση έχει υλοποιηθεί σωστά αφού το μυρμήγκι κινείται στο γειτονικό κελί με τη μεγαλύτερη ποσότητα φερομόνης 
+και η ποσότητα φερομόνης αλλάζει κατάλληλα.
 
 % \bibliography{bibliography}
 
