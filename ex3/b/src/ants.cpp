@@ -19,9 +19,9 @@
 #define LOG ""
 #endif
 
-// #define DEBUG
+#define DEBUG
 
-int steps = 100;
+int steps = 5;
 
 struct Colony
 {
@@ -61,6 +61,7 @@ struct Colony
 
     void show(std::ostream& out_stream)
     {
+        
 #pragma acc update host(A[0:S], P[0:S])
         const std::string seperator(2 * N_cells, '=');
 
@@ -116,7 +117,7 @@ struct Colony
                     continue; 
                 }
                 
-                int best_idx = -1;
+                int best_idx = IDX(x, y);
                 double best_p = -1.0;
 
                 best_cell(best_idx, best_p, x + 1, y);
@@ -124,8 +125,10 @@ struct Colony
                 best_cell(best_idx, best_p, x, y + 1);
                 best_cell(best_idx, best_p, x, y - 1);
 
-                assert(best_idx > 0);
-
+#ifdef DEBUG
+                assert(best_idx >= 0);
+                assert(best_idx < S);
+#endif
                 // ant moves to best_idx
                 A_new[best_idx] = 1;
             }
@@ -210,8 +213,8 @@ int main (int argc, char *argv[])
 {
     double p_inc = 0.1;
     double p_dec = 0.1;
-    int N_cells = 1024;
-    int N_ants = 100;
+    int N_cells = 2;
+    int N_ants = 1;
 
 
     if ((argc != 1) && (argc > 7)) {
