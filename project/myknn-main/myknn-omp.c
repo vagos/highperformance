@@ -20,7 +20,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	double max_d, new_d;
 
 	// initialize pairs of index and distance 
-#pragma omp parallel for
+#pragma omp parallel for shared(nn_x, nn_d)
 	for (i = 0; i < knn; i++) {
 		nn_x[i] = -1;
 		nn_d[i] = 1e99-i;
@@ -28,7 +28,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 
 	max_d = compute_max_pos(nn_d, knn, &max_i);
 
-#pragma omp parallel for
+#pragma omp parallel for reduction(max:max_d) private(i, new_d) shared(nn_x, nn_d, max_i)
 	for (i = 0; i < npat; i++) {
 		new_d = compute_dist(q, xdata[i], lpat);	// euclidean
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
@@ -86,10 +86,12 @@ double find_knn_value(double *p, int n, int knn)
 	double xd[MAX_NNB*PROBDIM];   // points
 	double fd[MAX_NNB];     // function values
 
+#pragma omp parallel for
 	for (int i = 0; i < knn; i++) {
 		fd[i] = ydata[nn_x[i]];
 	}
 
+#pragma omp parallel for
 	for (int i = 0; i < knn; i++) {
 		for (int j = 0; j < PROBDIM; j++) {
 			xd[i*dim+j] = xdata[nn_x[i]][j];
@@ -159,7 +161,7 @@ int main(int argc, char *argv[])
 	double sse = 0.0;
 	double err, err_sum = 0.0;
 
-#pragma omp parallel for reduction(+:err_sum)
+// #pragma omp parallel for reduction(+:err_sum) reduction(+:sse)
     for (int i=0;i<QUERYELEMS;i++) {	/* requests */
 
         t0 = gettime();
