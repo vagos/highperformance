@@ -1,11 +1,10 @@
+#ifndef FUNC_H
+#define FUNC_H
+
 #include <sys/time.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <omp.h>
-
-#include "util.hpp"
-#include "kdtree.hpp"
 
 /* I/O routines */
 FILE *open_traindata(char *trainfile)
@@ -250,7 +249,9 @@ double compute_distance(double *pat1, double *pat2, int lpat, int norm)
 	return dist;	// compute_root(dist);
 }
 
-/* Tried out merge sort. Results were actually slower.
+/* 
+
+   ==== Tried out merge sort. Results were actually slower.
 
 void merge(int start, int mid, int end, double* nn_d, int* nn_x) 
 {
@@ -298,7 +299,7 @@ void merge_sort(int start, int end, double* nn_d, int* nn_x)
     }
 }
 
-*/
+==== Tried using KD-Trees for nearest neighbor search. Results were actually slower.
 
 void compute_knn_kdtree(double **xdata, double *q, int npat, int lpat, int knn, int *nn_x, double *nn_d, kdt::KDTree<Point> &tree)
 {
@@ -314,62 +315,7 @@ void compute_knn_kdtree(double **xdata, double *q, int npat, int lpat, int knn, 
 
 }
 
-void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int knn, int *nn_x, double *nn_d)
-{
-	int i, max_i;
-	double max_d, new_d;
+*/
 
 
-	// initialize pairs of index and distance 
-	for (i = 0; i < knn; i++) {
-		nn_x[i] = -1;
-		nn_d[i] = 1e99-i;
-	}
-
-	max_d = compute_max_pos(nn_d, knn, &max_i);
-
-#pragma omp parallel for
-	for (i = 0; i < npat; i++) {
-		new_d = compute_dist(q, xdata[i], lpat);	// euclidean
-		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
-			nn_x[max_i] = i;
-			nn_d[max_i] = new_d;
-		}
-		max_d = compute_max_pos(nn_d, knn, &max_i);
-	}
-
-	// sort the knn list 
-
-    int j;
-	int temp_x;
-	double temp_d;
-
-#pragma omp parallel for private(i, j, temp_d, temp_x) shared(nn_d, nn_x)
-	for (i = (knn - 1); i > 0; i--) {
-		for (j = 1; j <= i; j++) {
-			if (nn_d[j-1] > nn_d[j]) {
-				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
-				temp_x = nn_x[j-1]; nn_x[j-1] = nn_x[j]; nn_x[j] = temp_x;
-			}
-		}
-	}
-
-	return;
-}
-
-
-/* compute an approximation based on the values of the neighbors */
-double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
-{
-	int i;
-	double sum_v = 0.0;
-	// plain mean (other possible options: inverse distance weight, closest value inheritance)
-
-#pragma omp parallel for reduction(+:sum_v)
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
-
-	return sum_v/knn;
-}
-
+#endif /* FUNC_H_ */

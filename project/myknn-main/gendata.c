@@ -7,7 +7,7 @@
 #define PROBDIM 2
 #endif
 
-#include "func.c"
+#include "func.h"
 
 int main(int argc, char *argv[])
 {

@@ -18,4 +18,3 @@ class Point : public std::array<double, PROBDIM>
             }
         }
 };
-

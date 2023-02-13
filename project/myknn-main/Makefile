@@ -8,28 +8,19 @@ HIGH ?= 2
 
 
 CFLAGS  = -DPROBDIM=$(DIM) -DNNBS=$(KNN) -DTRAINELEMS=$(TRA) -DQUERYELEMS=$(QUE) -DLB=$(LOW) -DUB=$(HIGH) -g -ggdb -O3
-CFLAGS += -DSURROGATES -Wall -fopenmp
-LDFLAGS += -lm -fopenmp
+CFLAGS += -DSURROGATES -Wall
+LDFLAGS += -lm
 
-all: gendata myknn myknnomp
+all: gendata myknn-serial myknn-omp
 
-myknnomp: myknnomp.o
-	g++ -o myknnomp myknnomp.o $(LDFLAGS) -fopenmp
+myknn-omp: myknn-omp.c func.h
+	g++ -o myknn-omp $(CFLAGS) myknn-omp.c $(LDFLAGS) -fopenmp
 
-myknnomp.o: myknnomp.cpp func.c util.hpp
-	g++ $(CFLAGS) -c myknnomp.cpp
+myknn-serial: myknn-serial.c func.h
+	g++ -o myknn-serial $(CFLAGS) myknn-serial.c $(LDFLAGS)
 
-gendata: gendata.o
-	g++ -o gendata gendata.o $(LDFLAGS)
-
-gendata.o: gendata.c func.c
-	g++ $(CFLAGS) -c gendata.c
-
-myknn: myknn.o
-	g++ -o myknn myknn.o $(LDFLAGS)
-
-myknn.o: myknn.c func.c
-	g++ $(CFLAGS) -c myknn.c
+gendata: gendata.c func.h
+	g++ -o gendata $(CFLAGS) gendata.c $(LDFLAGS)
 
 clean:
-	rm -f myknn *.o gendata
+	rm -f myknn-serial myknn-omp gendata
