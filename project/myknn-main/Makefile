@@ -7,11 +7,16 @@ LOW ?=  0
 HIGH ?= 2
 
 
-CFLAGS  = -DPROBDIM=$(DIM) -DNNBS=$(KNN) -DTRAINELEMS=$(TRA) -DQUERYELEMS=$(QUE) -DLB=$(LOW) -DUB=$(HIGH) -g -ggdb -O3
+CFLAGS  = -DPROBDIM=$(DIM) -DNNBS=$(KNN) -DTRAINELEMS=$(TRA) -DQUERYELEMS=$(QUE) -DLB=$(LOW) -DUB=$(HIGH) -g -O3
 CFLAGS += -DSURROGATES -Wall
 LDFLAGS += -lm
 
-all: gendata myknn-serial myknn-omp
+NVC = /opt/nvidia/hpc_sdk/Linux_x86_64/23.1/compilers/bin/nvc++ # set this as the path of your nvidia c++ compiler.
+
+all: gendata myknn-serial myknn-omp myknn-acc
+
+myknn-acc: myknn-acc.c func.h
+	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast -ta=nvidia -Minfo=accel -Msafeptr
 
 myknn-omp: myknn-omp.c func.h
 	g++ -o myknn-omp $(CFLAGS) myknn-omp.c $(LDFLAGS) -fopenmp
