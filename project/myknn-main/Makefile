@@ -13,10 +13,13 @@ LDFLAGS += -lm
 
 NVC = /opt/nvidia/hpc_sdk/Linux_x86_64/23.1/compilers/bin/nvc++ # set this as the path of your nvidia c++ compiler.
 
-all: gendata myknn-serial myknn-omp myknn-acc
+all: gendata myknn-serial myknn-omp myknn-mpi myknn-acc
 
 myknn-acc: myknn-acc.c func.h
 	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast -ta=nvidia -Minfo=accel -Msafeptr
+
+myknn-mpi: myknn-mpi.c func.h
+	mpicc -o myknn-mpi $(CFLAGS) myknn-mpi.c $(LDFLAGS)
 
 myknn-omp: myknn-omp.c func.h
 	g++ -o myknn-omp $(CFLAGS) myknn-omp.c $(LDFLAGS) -fopenmp
