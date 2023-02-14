@@ -16,7 +16,7 @@ NVC = /opt/nvidia/hpc_sdk/Linux_x86_64/23.1/compilers/bin/nvc++ # set this as th
 all: gendata myknn-serial myknn-omp myknn-acc
 
 myknn-acc: myknn-acc.c func.h
-	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast -ta=nvidia -Minfo=accel -Msafeptr
+	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast -Minfo=accel
 
 myknn-omp: myknn-omp.c func.h
 	g++ -o myknn-omp $(CFLAGS) myknn-omp.c $(LDFLAGS) -fopenmp
