@@ -155,7 +155,6 @@ int main(int argc, char *argv[])
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    double t_start = gettime();
 	
     //FILE *fpout = fopen("output.knn.txt","w");
 
@@ -185,8 +184,6 @@ int main(int argc, char *argv[])
         //fprintf(fpout,"%.5f %.5f %.2f\n", y[i], yp, err);
         err_sum += err;
 	}
-    
-    t_end = gettime();
 
 	//fclose(fpout);
     // reduction sum to rank 0 for error,sse and max time
@@ -213,7 +210,6 @@ int main(int argc, char *argv[])
         t_sum = t_sum*1000.0;			// convert to ms
         t_first = t_first*1000.0;	// convert to ms
         printf("Total time with t_sum = %lf ms\n", t_sum);
-        printf("Total time with t_all = %lf ms\n", (t_end - t_start)*1000.0);
         printf("Time for 1st query = %lf ms\n", t_first);
         printf("Time for 2..N queries = %lf ms\n", t_sum-t_first);
         printf("Average time/query = %lf ms\n", (t_sum-t_first)/(QUERYELEMS-1));
