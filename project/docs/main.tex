@@ -1,0 +1,150 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[11pt]{scrartcl} % Font size
+
+\input{structure.tex} % Include the file specifying the document structure and custom commands
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{subcaption}
+% Bar chart drawing library 
+\usepackage{pgfplots} 
+\usepackage{textcomp}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Define a macro to create a table with fixed column widths
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{codeblue}{rgb}{0,0,0.8}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codeblue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\title{	
+	\normalfont\normalsize
+	\textsc{Πανεπιστήμιο Πατρών, Τμήμα Μηχανικών ΗΥ και Πληροφορικής}\\ % Your university, school and/or department name(s)
+	\vspace{25pt} % Whitespace
+	\rule{\linewidth}{0.5pt}\\ % Thin top horizontal rule
+	\vspace{20pt} % Whitespace
+    {\Large Λογισμικό και Προγραμματισμός Συστημάτων Υψηλής Επίδοσης \\ \textbf{Final Project:} Function approximation with k-Nearest Neighbors}\\ % The assignment title
+	\vspace{12pt} % Whitespace
+	\rule{\linewidth}{2pt}\\ % Thick bottom horizontal rule
+	\vspace{12pt} % Whitespace
+}
+
+\author{Ευάγγελος Λάμπρου \\UP1066519 \and Ιωάννης Παναρίτης \\UP1072632} % Your name
+
+\date{} % Today's date (\today) or a custom date
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT
+%----------------------------------------------------------------------------------------
+
+\bibliographystyle{abbrv}
+\addto\captionsgreek{\renewcommand{\refname}{Αναφορές}}
+
+
+\begin{document}
+
+\maketitle 
+
+% \tableofcontents
+
+\section{Υλοποιήσεις}
+
+\subsection{Σειριακή}
+\subsection{OpenMP}
+\subsection{OpenACC}
+\subsection{CUDA}
+\subsection{MPI}
+\subsubsection{MPI Cluster}
+
+% setup ssh
+% setup nfs
+% change /etc/exports
+% exportfs -a
+% restart nfs
+% from client: sudo mount -t nfs -o master:/home/vagozino/mpi
+% run RUN_CMD="mpirun -np 4 --host laptop:0,desktop:4 ./diffusion2d_mpi $D $L $N $T $DT" 
+
+% mpi 1 machine: 4.307 time/query 20.35ms 
+% mpi 3 machines: 26.753 time/query 12.54ms
+
+% create a bar plot for the total time for 1 machine and 3 machines
+% create a bar plot for the time/query for 1 machine and 3 machines
+\begin{figure}[H]
+    \begin{center}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Μηχανημάτων},
+        ylabel={Time},
+        xtick=data,
+        xticklabels={1, 3},
+        ybar,
+        enlarge x limits=0.15,
+        bar width=10pt,
+        legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
+        legend entries={Total Time (s), Time/query (ms)},
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={yshift=-2pt},
+        every axis plot post/.append style={fill=blue!20},
+        ]
+        \addplot coordinates {(1, 4.307) (3, 26.753)};
+        \addplot coordinates {(1, 20.35) (3, 12.54)};
+    \end{axis}
+\end{tikzpicture}
+    \end{center}
+    \caption{Χρόνοι εκτέλεσης της υλοποίηση με και χωρίς CUDA.}
+    \label{fig:cluster_times}
+\end{figure}
+
+
+
+
+\section{Μετρήσεις}
+
+\section{Έλεγχος Αποτελεσμάτων}
+
+\bibliography{bibliography}
+
+\end{document}
