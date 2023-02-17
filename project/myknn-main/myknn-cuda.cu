@@ -111,7 +111,7 @@ void compute_knn_brute_force(double *d_xmem, double *d_q, int npat, int lpat, in
 	// }
 
 	err = cudaMemset(d_nn_x, -1, MAX_NNB*sizeof(int));
-	err = cudaMemset(d_nn_d, 1e99, MAX_NNB*sizeof(double));
+	err = cudaMemset(d_nn_d, 0x7F, MAX_NNB*sizeof(double));
 
 	// err = cudaMemcpy(d_nn_x, nn_x, MAX_NNB*sizeof(int), cudaMemcpyHostToDevice);
 	// err = cudaMemcpy(d_nn_d, nn_d, MAX_NNB*sizeof(double), cudaMemcpyHostToDevice);
