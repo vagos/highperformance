@@ -12,134 +12,73 @@
 static double **xdata;
 static double ydata[TRAINELEMS];
 
-// static const int diffusion_block_x = 16;
-// static const int diffusion_block_y = 16;
 cudaError_t err = cudaSuccess;
 
 #define MAX_NNB	256
 
-__device__ double compute_max_pos_d(double *v, int n, int *pos)
+__global__ void compute_dist(double *xdata, double *q, int npat, int lpat, double *dist)
 {
-	int i, p = 0;
-	double vmax = v[0];
-	for (i = 1; i < n; i++)
-		if (v[i] > vmax) {
-			vmax = v[i];
-			p = i;
-		}
-
-	*pos = p;
-	return vmax;
-}
-
-__device__ double compute_dist_d(double *v, double *w, int n)
-{
-	int i;
-	double s = 0.0;
-	for (i = 0; i < n; i++) {
-		s+= pow(v[i]-w[i],2);
-	}
-
-	// return sqrt(s); /* Loses precision but still okay */
-	return s;
-}
-
-__global__ void compute_knn_brute_force_kernel(double *xmem, double *q, int npat, int lpat, int knn, int *nn_x, double *nn_d)
-{
-    int i, max_i;
-    double max_d, new_d;
-
-    i = blockIdx.x * blockDim.x + threadIdx.x;
-
-    // // initialize pairs of index and distance
-    // if (i < knn) {
-    //     nn_x[i] = -1;
-    //     nn_d[i] = 1e99-i;
-    // }
-
-    max_d = compute_max_pos_d(nn_d, knn, &max_i);
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < npat) {
-        new_d = compute_dist_d(q, xmem + i * PROBDIM, lpat);	// euclidean
-        if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
-            nn_x[max_i] = i;
-            nn_d[max_i] = new_d;
+        double sum = 0.0;
+        for (int j = 0; j < lpat; j++) {
+            double diff = xdata[i*lpat+j] - q[j];
+            sum += diff*diff;
         }
-        max_d = compute_max_pos_d(nn_d, knn, &max_i);
+        dist[i] = sum;
     }
 }
 
-
-
-
-
-void compute_knn_brute_force(double *d_xmem, double *d_q, int npat, int lpat, int knn,int *d_nn_x,double *d_nn_d, int *nn_x, double *nn_d)
+void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, int lpat, int knn, int *nn_x, double *nn_d, double *dist)
 {
-    // double *d_xmem, *d_q, *d_nn_d;
-    // int *d_nn_x;
-    // err = cudaMalloc((void **)&d_xmem, TRAINELEMS*PROBDIM*sizeof(double));
-    // err = cudaMalloc((void **)&d_q, PROBDIM*sizeof(double));
-    // err = cudaMalloc((void **)&d_nn_d, MAX_NNB*sizeof(double));
-    // err = cudaMalloc((void **)&d_nn_x, MAX_NNB*sizeof(int));
-
-    // err = cudaMemcpy(d_xmem, xdata, TRAINELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
-    // err = cudaMemcpy(d_q, q, PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
-
-    // //define grid_size and block_size
-    // int threads_x = diffusion_block_x;
-    // int threads_y = diffusion_block_y;
-    // dim3 threadsPerBlock(threads_x,threads_y);
-
-    // int blocks_x = ( + threads_x - 1) / threads_x;
-    // int blocks_y = (npat + threads_y - 1) / threads_y;
-    // blocks_x = (blocks_x == 0)? 1 : blocks_x;
-    // blocks_y = (blocks_y == 0)? 1 : blocks_y;
-
-    // dim3 blocksPerGrid(4,4);
-
-    // compute_knn_brute_force_kernel<<<256,512>>>(d_xmem, d_q, npat, lpat, knn, d_nn_x, d_nn_d);
-
-
-	// int i, max_i;
-	// double max_d, new_d;
+	int i, max_i;
+	double max_d, new_d;
 
 
 	// initialize pairs of index and distance 
-	// for (i = 0; i < knn; i++) {
-	// 	nn_x[i] = -1;
-	// 	nn_d[i] = 1e99-i;
+	for (i = 0; i < knn; i++) {
+		nn_x[i] = -1;
+		nn_d[i] = 1e99-i;
+	}
+
+	max_d = compute_max_pos(nn_d, knn, &max_i);
+
+    // create array of npat elements with cudaHostAlloc
+	// err = cudaHostAlloc((void **)&dist, npat*sizeof(double), cudaHostAllocDefault);
+	// if(err != cudaSuccess) {
+	// 	fprintf(stderr, "Failed to allocate host vector dist (error code %s)! %d\n", cudaGetErrorString(err), __LINE__);
+	// 	exit(EXIT_FAILURE);
 	// }
 
-	err = cudaMemset(d_nn_x, -1, MAX_NNB*sizeof(int));
-	err = cudaMemset(d_nn_d, 0x7F, MAX_NNB*sizeof(double));
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (npat + threadsPerBlock - 1) / threadsPerBlock;
 
-	// err = cudaMemcpy(d_nn_x, nn_x, MAX_NNB*sizeof(int), cudaMemcpyHostToDevice);
-	// err = cudaMemcpy(d_nn_d, nn_d, MAX_NNB*sizeof(double), cudaMemcpyHostToDevice);
+    // compute distances to all points
+    compute_dist<<<blocksPerGrid, threadsPerBlock>>>(xdata, q, npat, lpat, d_dist);
 
-    // err = cudaMemcpy(nn_x, d_nn_x, MAX_NNB*sizeof(int), cudaMemcpyDeviceToHost);
-    // err = cudaMemcpy(nn_d, d_nn_d, MAX_NNB*sizeof(double), cudaMemcpyDeviceToHost);
-
-    compute_knn_brute_force_kernel<<<32,64>>>(d_xmem, d_q, npat, lpat, knn, d_nn_x, d_nn_d);
-
-	// max_d = compute_max_pos(nn_d, knn, &max_i);
-
-	// for (i = 0; i < npat; i++) {
-	// 	new_d = compute_dist(q, xdata[i], lpat);	// euclidean
-	// 	if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
-	// 		nn_x[max_i] = i;
-	// 		nn_d[max_i] = new_d;
-	// 	}
-	// 	max_d = compute_max_pos(nn_d, knn, &max_i);
-	// }
     cudaDeviceSynchronize();
+    cudaMemcpy(dist, d_dist, npat*sizeof(double), cudaMemcpyDeviceToHost);
+
     err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        printf("Error: %s in %s at line %d in file %s \n", cudaGetErrorString(err), __FUNCTION__, __LINE__, __FILE__);
+    if(err != cudaSuccess) {
+        fprintf(stderr, "Failed to launch compute_dist kernel (error code %s)! %d", cudaGetErrorString(err), __LINE__);
         exit(EXIT_FAILURE);
     }
-    err = cudaMemcpy(nn_x, d_nn_x, MAX_NNB*sizeof(int), cudaMemcpyDeviceToHost);
-    err = cudaMemcpy(nn_d, d_nn_d, MAX_NNB*sizeof(double), cudaMemcpyDeviceToHost);
 
+    // compute distances to all points
+    // for (i = 0; i < npat; i++) {
+    //     dist[i] = compute_dist(q, xdata[i], lpat);
+    // }
+
+	for (i = 0; i < npat; i++) {
+		new_d = dist[i];	// euclidean
+		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
+			nn_x[max_i] = i;
+			nn_d[max_i] = new_d;
+		}
+		max_d = compute_max_pos(nn_d, knn, &max_i);
+	}
 
 	// sort the knn list 
 
@@ -147,7 +86,7 @@ void compute_knn_brute_force(double *d_xmem, double *d_q, int npat, int lpat, in
 	int temp_x;
 	double temp_d;
 
-	for (int i = (knn - 1); i > 0; i--) {
+	for (i = (knn - 1); i > 0; i--) {
 		for (j = 1; j <= i; j++) {
 			if (nn_d[j-1] > nn_d[j]) {
 				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
@@ -175,20 +114,12 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
 }
 
 
-double find_knn_value(double *d_xmem,double *d_q, int *d_nn_x, double *d_nn_d, double *p, int n, int knn)
+double find_knn_value(double *d_xmem, double *d_x, double *d_dist,double *p, int n, int knn, double *dist)
 {
 	int nn_x[MAX_NNB];
 	double nn_d[MAX_NNB];
 
-	compute_knn_brute_force(d_xmem, d_q, TRAINELEMS, PROBDIM, knn, d_nn_x, d_nn_d, nn_x, nn_d); // brute-force /linear search
-
-	err = cudaMemcpy(nn_x, d_nn_x, MAX_NNB*sizeof(int), cudaMemcpyDeviceToHost);
-	err = cudaMemcpy(nn_d, d_nn_d, MAX_NNB*sizeof(double), cudaMemcpyDeviceToHost);
-	err = cudaGetLastError();
-	if (err != cudaSuccess) {
-		printf("Error: %s in %s at line %d in file %s \n", cudaGetErrorString(err), __FUNCTION__, __LINE__, __FILE__);
-		exit(EXIT_FAILURE);
-	}
+	compute_knn_brute_force(d_xmem, d_x, d_dist, TRAINELEMS, PROBDIM, knn, nn_x, nn_d, dist); // brute-force /linear search
 
 	int dim = PROBDIM;
 	int nd = knn;   // number of points
@@ -263,15 +194,21 @@ int main(int argc, char *argv[])
 	
     //FILE *fpout = fopen("output.knn.txt","w");
 
-	double *d_xmem, *d_q, *d_nn_d;
-    int *d_nn_x;
-    err = cudaMalloc((void **)&d_xmem, TRAINELEMS*PROBDIM*sizeof(double));
-    err = cudaMalloc((void **)&d_q, QUERYELEMS*PROBDIM*sizeof(double));
-    err = cudaMalloc((void **)&d_nn_d, MAX_NNB*sizeof(double));
-    err = cudaMalloc((void **)&d_nn_x, MAX_NNB*sizeof(int));
+    double *d_xmem, *d_x, *d_dist;
 
-	err = cudaMemcpy(d_xmem, xmem, TRAINELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
-	err = cudaMemcpy(d_q, x, QUERYELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_xmem, TRAINELEMS*PROBDIM*sizeof(double));
+    cudaMalloc((void **)&d_x, QUERYELEMS*PROBDIM*sizeof(double *));
+    cudaMalloc((void **)&d_dist, TRAINELEMS*sizeof(double));
+
+    cudaMemcpy(d_xmem, xmem, TRAINELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, x, QUERYELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
+
+
+	double *dist;
+	cudaHostAlloc((void **)&dist, TRAINELEMS*sizeof(double), cudaHostAllocDefault);
+
+	printf("Computing KNN...\n");
+    
 
 	double t0, t1, t_first = 0.0, t_sum = 0.0;
 	double sse = 0.0;
@@ -280,7 +217,7 @@ int main(int argc, char *argv[])
     for (int i=0;i<QUERYELEMS;i++) {	/* requests */
 
         t0 = gettime();
-        double yp = find_knn_value(d_xmem,&d_q[i*PROBDIM],d_nn_x, d_nn_d, &x[i*PROBDIM], PROBDIM, NNBS);
+        double yp = find_knn_value(d_xmem, &d_x[i*PROBDIM], d_dist, &x[i*PROBDIM], PROBDIM, NNBS, dist);
         t1 = gettime();
         t_sum += (t1-t0);
         if (i == 0) t_first = (t1-t0);
@@ -313,6 +250,18 @@ int main(int argc, char *argv[])
 	printf("Time for 1st query = %lf ms\n", t_first);
 	printf("Time for 2..N queries = %lf ms\n", t_sum-t_first);
 	printf("Average time/query = %lf ms\n", (t_sum-t_first)/(QUERYELEMS-1));
+
+
+	//Free the allocated memory
+	// free(xmem);
+	// free(xdata);
+	// free(ydata);
+	// free(x);
+	// free(y);
+
+	// cudaFree(d_xmem);
+	// cudaFree(d_x);
+	// cudaFree(d_dist);
 
 	return 0;
 }
