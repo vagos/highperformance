@@ -34,8 +34,8 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
 			nn_x[max_i] = i;
 			nn_d[max_i] = new_d;
+			max_d = compute_max_pos(nn_d, knn, &max_i);
 		}
-		max_d = compute_max_pos(nn_d, knn, &max_i);
 	}
 
 	// sort the knn list 
