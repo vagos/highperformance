@@ -42,7 +42,7 @@ void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, 
 		nn_d[i] = 1e99-i;
 	}
 
-	max_d = compute_max_pos(nn_d, knn, &max_i);
+	// max_d = compute_max_pos(nn_d, knn, &max_i);
 
     // create array of npat elements with cudaHostAlloc
 	// err = cudaHostAlloc((void **)&dist, npat*sizeof(double), cudaHostAllocDefault);
@@ -74,10 +74,11 @@ void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, 
 	for (i = 0; i < npat; i++) {
 		new_d = dist[i];	// euclidean
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
+			max_d = compute_max_pos(nn_d, knn, &max_i);
 			nn_x[max_i] = i;
 			nn_d[max_i] = new_d;
 		}
-		max_d = compute_max_pos(nn_d, knn, &max_i);
+		
 	}
 
 	// sort the knn list 
