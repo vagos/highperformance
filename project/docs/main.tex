@@ -14,6 +14,8 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 
+\usetikzlibrary{positioning}
+
 % Define a macro to create a table with fixed column widths
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
@@ -89,11 +91,133 @@
 \section{Υλοποιήσεις}
 
 \subsection{Σειριακή}
+
+\subsubsection{Αρχική Υλοποίηση}
+
+Στη σειριακή υλοποίηση το πρόγραμμα αποτελείται από τρία μέρη: 
+
+\begin{enumerate}
+    \item Φόρτωση των δεδομένων εκπαίδευσης (training) και ερωτήσεων (query).
+    \item Εκτέλεση του αλγορίθμου KNN για κάθε ένα από τα σημεία ερώτησης.
+    \item Παρουσίαση των αποτελεσμάτων (APE, MSE, $R^2$, χρόνοι εκτέλεσης)
+\end{enumerate}
+
+Για τον υπολογισμό του κάθε σημείου, ο KNN λειτουργεί ως εξής:
+
+\begin{enumerate}
+    \item Υπολογισμός της απόστασης του σημείου ερώτησης (query point) με όλα τα σημεία εκπαίδευσης.
+    \item Επιλογή των $k$ σημείων με τη χαμηλότερη απόσταση από το query point. (γίνεται sorting πάνω στον πίνακα των αποστάσεων)
+    \item Πρόβλεψη της τιμής του σημείου ερώτησης με βάση τις τιμές των $k$ επιλεγμένων σημείων. (μέσος όρος, weighted average, κλπ)
+\end{enumerate}
+
+Εκτελώντας την σειριακή υλοποίηση από τον perf profiler έχουμε τα ακόλουθα αποτελέσματα:
+
+\lstinputlisting[caption={Αποτελέσματα του \src{perf report x.txt q.txt} (χωρίς τις κλήσεις στη βασική βιβλιοθήκη C)}, label={lst:perf}]{./assets/report-serial.txt}
+
+Φαίνεται πως το μεγαλύτερο ποσοστό του χρόνου βρίσκεται στις συναρτήσεις \src{compute\_max\_pos} και \src{compute\_dist}, οι οποίες με τη σειρά τους εκτελούνται 
+μέσα από την \src{compute\_knn\_brute\_force}. Συνεπώς, στόχος μας είναι η παραλληλοποίηση του \src{compute\_knn\_brute\_force}.
+
+\subsubsection{Διαχείριση των δεδομένων}
+
+Στην αρχική υλοποίηση του πργράμματος για κάθε query διαβαζόταν το επόμενο σημείο από το αρχείο \src{q.txt}. 
+Ωστόσο, αυτό έχει ως αποτέλεσμα την δυσκολία παραλληλοποίησης του υπολογισμού των queries (δηλαδή το να υπολογίζονται πολλά queries ταυτόχρονα).
+Έτσι, μετατρέπουμε το αρχείο \src{q.txt} σε έναν πίνακα στη μνήμη, ώστε να μπορούμε να προσπελάσουμε τα σημεία ερώτησης με την σειριακή σειρά που έχουν στο αρχείο.
+Τελικά, έχουμε την επιλογή είτε να υλοποιήσουμε τα βήματα του αλγορίθμου KNN, ή να τρέχουμε πολλούς ξεχωριστούς αλγορίθμους KNN παράλληλα.
+
+% create a figure with two subfigures
+% the first subfigure should be the diagram you created above
+% the second subfigure should be empty
+% the two subfigures should be side by side
+% the two subfigures should be centered in the page
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \node [draw, minimum width=15em, minimum height=15em, label=above:Program] (program) at (0,0) {};
+            \node [draw, fill=blue!20, minimum width=1cm, minimum height=1cm] (query1) at (0, 2)  {k-NN query};
+            \node [draw, fill=blue!20, minimum width=1cm, minimum height=1cm, below=.3cm of query1] (query2)  {k-NN query};
+            \node [draw, fill=blue!20, minimum width=1cm, minimum height=1cm, below=.3cm of query2] (query3)  {k-NN query};
+            \node [draw, fill=blue!20, minimum width=1cm, minimum height=1cm, below=.3cm of query3] (query4)  {k-NN query};
+
+            \draw [decorate, decoration = {brace, amplitude=10pt}] (query1.north east) -- (query4.south east)  node [midway, label=right:Parallel] {};
+        \end{tikzpicture}
+        \caption{Παραλληλοποίηση επιπέδου query.}
+    \end{subfigure}
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \begin{tikzpicture}
+            \node [draw, minimum width=15em, minimum height=15em, label=above:Program] (program) at (0,0) {};
+            \node [draw, fill=blue!20, minimum width=5cm, minimum height=4cm, label=above:k-NN query] (KNN) at (0, 0)  {};
+            % draw 3 red rectangles inside the blue rectangle
+            \node [draw, fill=red!20, minimum width=4cm, minimum height=.5cm, below=.3cm of KNN.north] (point1) {\src{compute\_distance}};
+            \node [draw, fill=red!20, minimum width=4cm, minimum height=.5cm, below=.3cm of point1] (point2)  {\src{compute\_distance}};
+            \node [draw, fill=red!20, minimum width=4cm, minimum height=.5cm, below=.3cm of point2] (point3)  {\src{compute\_distance}};
+            \node [draw, fill=red!20, minimum width=4cm, minimum height=.5cm, below=.3cm of point3] (point4)  {...};
+
+            \draw [decorate, decoration = {brace, amplitude=5pt}] (point1.north east) -- (point4.south east)  node [midway, label=right:Parallel] {};
+        \end{tikzpicture}
+        \caption{Παραλληλοποίηση του αλγορίθμου KNN}
+    \end{subfigure}
+    \caption{Παραλληλοποίηση του της εφαρμογής σε επίπεδο query και σε επίπεδο αλγορίθμου}
+\end{figure}
+
 \subsection{OpenMP}
+
+Στην OpenMP υλοποίηση του προγράμματος, χρησιμοποιούμε μερικά OMP directives για να επιταχύνουμε μερικές 
+από τις ρουτίνες του αλγορίθμου ΚΝΝ.
+
 \subsection{OpenACC}
+
+Για την υλοποίηση με OpenACC κάναμε προσέγγιση παρόμοια με αυτή της OpenMP, δηλαδή
+παραλληλοποιήσαμε ρουτίνες του αλγορίθμου KNN. 
+Βασική διαφορά τώρα όμως είναι πως προκειμένου να δούμε μείωση στο συνολικό χρόνο εκτέλεσης έπρεπε 
+να ελαχιστοποιήσουμε τις μεταφορές δεδομένων μεταξύ επεξεργαστή και κάρτας γραφικών.
+
 \subsection{CUDA}
+
+
 \subsection{MPI}
-\subsubsection{MPI Cluster}
+
+Για την υλοποίηση με MPI αποφασίσαμε να παραλληλοποιήσουμε τα ίδια τα queries και όχι το κάθε query ξεχωριστά, 
+ουσιαστικά το κάθε process θα εκτελεί όλα τα queries που του αντιστοιχούν.
+Αυτό έγινε για να ελαχιστοποιήσουμε τις μεταφορές δεδομένων μεταξύ των διεργασιών, αφού δεν θα υπάρχει ανταλλαγή δεδομένων παρά μόνο στην εκκίνηση και στη λήξη του αλγορίθμου.
+
+\subsubsection{MPI Cluster και OpenMP}
+
+Επόμενος στόχος ήταν η δημιουργία ενός MPI cluster, όπου θα είχαμε παραπάνω από ένα μηχάνημα μέσα σε περιβάλλον LAN να εκτελούν τα queries.
+
+Οι διεργασίες που εκτελούνται στον κάθε cluster μπορούν να παραλληλοποιηθούν περεταίρω..
+Έτσι, αφού είχαμε τη βασική υλοποίηση με MPI, προσθέσαμε στον κώδικα παραλληλοποίηση με OpenMP στον κώδικα του αλγορίθμου k-NN.
+
+Τα βήματα για να δημιουργήσουμε ένα MPI cluster είναι τα εξής:
+
+\begin{enumerate}
+\item Εγκατάσταση του MPI σε όλα τα μηχανήματα.
+\item Εγκατάσταση του OpenMPI σε όλα τα μηχανήματα.
+\item Εγκατάσταση του OpenSSH σε όλα τα μηχανήματα, ενεργοποίηση του SSH server και δημιουργία κατάλληλων ssh κλειδιών.
+\item Εγκατάσταση του NFS \cite{nfs} σε όλα τα μηχανήματα, ενεργοποίηση του NFS server και
+        δημιουργία κοινόχρηστου φακέλου. Εκεί θα βρίσκεται το εκτελέσιμο και τα
+        δεδομένα που θα χρησιμοποιούνται.
+\item Εκτέλεση του κώδικα στον κύριο κόμβο με την εντολή:
+\begin{lstlisting}
+mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
+\end{lstlisting}
+\end{enumerate}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{assets/mpi_cluster.png}
+    \end{center}
+    \caption{Ο MPI Cluster μας να τρέχει τον αλγόριθμο K-NN σε ασύρματο LAN δίκτυο σε τρία μηχανήματα.}
+    \label{fig:}
+\end{figure}
+
+Όπως ήταν αναμενόμενο, ο συνολικός χρόνος εκτέλσης του αλγορίθμου αυξήθηκε.
+Ωστόσο, ο χρόνος ανά query, έφτασε ταχύτητα ισάξια της OpenMP υλοποίησης, πράγμα που δεν μας κάνει εντύπωση αφού σε επίπεδο query οι δύο υλοποιήσεις είναι πανομοιότυπες.
+Αυτό οφείλεται στη μεγάλη απόκλιση μεταξύ του memory bandwidth και του network bandwidth.
+Ένα τυπικό laptop έχει memory bandwidth της τάξης των 10 Gb/s ενώ ένας κόμβος σε ένα cluster έχει network bandwidth της τάξης των 1 Gb/s.
+Αυτό σημαίνει ότι ο αλγόριθμος θα εκτελείται γρήγορα στον εκάστοτε κόμβο, αλλά η μεταφορά των δεδομένων από τον κύριο κόμβο στους υπόλοιπους και το αντίστροφο θα είναι πολύ πιο αργή.
 
 % setup ssh
 % setup nfs
@@ -134,16 +258,16 @@
     \end{axis}
 \end{tikzpicture}
     \end{center}
-    \caption{Χρόνοι εκτέλεσης της υλοποίηση με και χωρίς CUDA.}
+    \caption{Χρόνοι εκτέλεσης της υλοποίηση με και χωρίς CUDA. (32 queries)}
     \label{fig:cluster_times}
 \end{figure}
-
-
-
 
 \section{Μετρήσεις}
 
 \section{Έλεγχος Αποτελεσμάτων}
+
+Για τον έλεγχο αποτελεσμάτων βασιστήκαμε στις μετρήσεις που εμφανίζονται με την εκτέλεση του προγράμματος.
+Στον παρακάτω πίνακα παραθέτουμε τις μετρήσεις με την κάθε υλοποίηση.
 
 \bibliography{bibliography}
 

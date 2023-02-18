@@ -1,0 +1,7 @@
+# Event count (approx.): 122994563868
+# Overhead  Command       Shared Object         Symbol                     
+# ........  ............  ....................  ...................
+#
+     8.79%  myknn-serial  myknn-serial          [.] compute_max_pos
+     4.50%  myknn-serial  myknn-serial          [.] compute_dist
+     0.98%  myknn-serial  myknn-serial          [.] compute_knn_brute_force
