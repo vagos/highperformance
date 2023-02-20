@@ -7,6 +7,8 @@
 #define PROBDIM 2
 #endif
 
+// #define DEBUG
+
 #include "func.h"
 
 static double **xdata;
@@ -14,45 +16,76 @@ static double ydata[TRAINELEMS];
 
 #define MAX_NNB	256
 
+void merge(double *arr, int *arr_x, int left, int mid, int right) {
+    int i, j, k;
+    double *temp = (double*)malloc((right - left + 1) * sizeof(double));
+    int *temp_x = (int*)malloc((right - left + 1) * sizeof(int));
+    i = left; j = mid + 1; k = 0;
+    while (i <= mid && j <= right) {
+        if (arr[i] < arr[j]) {
+            temp[k] = arr[i];
+            temp_x[k] = arr_x[i];
+            k++; i++;
+        } else {
+            temp[k] = arr[j];
+            temp_x[k] = arr_x[j];
+            k++; j++;
+        }
+    }
+    while (i <= mid) {
+        temp[k] = arr[i];
+        temp_x[k] = arr_x[i];
+        k++; i++;
+    }
+    while (j <= right) {
+        temp[k] = arr[j];
+        temp_x[k] = arr_x[j];
+        k++; j++;
+    }
+    for (i = left; i <= right; i++) {
+        arr[i] = temp[i - left];
+        arr_x[i] = temp_x[i - left];
+    }
+    free(temp);
+    free(temp_x);
+}
+
+void mergesort(double *arr, int *arr_x, int left, int right) {
+    if (left < right) {
+        int mid = left + (right - left) / 2;
+        #pragma omp task shared(arr, arr_x)
+        mergesort(arr, arr_x, left, mid);
+        #pragma omp task shared(arr, arr_x)
+        mergesort(arr, arr_x, mid + 1, right);
+        #pragma omp taskwait
+        merge(arr, arr_x, left, mid, right);
+    }
+}
+
 void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int knn, int *nn_x, double *nn_d)
 {
 	int i, max_i;
 	double max_d, new_d;
 
 	// initialize pairs of index and distance 
-#pragma omp parallel for shared(nn_x, nn_d)
-	for (i = 0; i < knn; i++) {
+	for (i = 0; i < NNBS; i++) {
 		nn_x[i] = -1;
 		nn_d[i] = 1e99-i;
 	}
 
 	max_d = compute_max_pos(nn_d, knn, &max_i);
 
-#pragma omp parallel for reduction(max:max_d) private(i, new_d) shared(nn_x, nn_d, max_i)
 	for (i = 0; i < npat; i++) {
 		new_d = compute_dist(q, xdata[i], lpat);	// euclidean
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
 			nn_x[max_i] = i;
 			nn_d[max_i] = new_d;
-		}
-		max_d = compute_max_pos(nn_d, knn, &max_i);
+            max_d = compute_max_pos(nn_d, knn, &max_i);
+        }
 	}
 
 	// sort the knn list 
-
-    int j;
-	int temp_x;
-	double temp_d;
-
-#pragma omp parallel for private(i, j, temp_d, temp_x) shared(nn_d, nn_x)
-	for (i = (knn - 1); i > 0; i--) {
-		for (j = 1; j <= i; j++) {
-			if (nn_d[j-1] > nn_d[j]) {
-				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
-				temp_x = nn_x[j-1]; nn_x[j-1] = nn_x[j]; nn_x[j] = temp_x;
-			}
-		}
-	}
+    quicksort(nn_d, nn_x, 0, knn-1);
 
 	return;
 }
@@ -65,7 +98,7 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
 	double sum_v = 0.0;
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
 
-#pragma omp parallel for reduction(+:sum_v)
+// #pragma omp parallel for reduction(+:sum_v)
 	for (i = 0; i < knn; i++) {
 		sum_v += ydata[i];
 	}
@@ -86,12 +119,12 @@ double find_knn_value(double *p, int n, int knn)
 	double xd[MAX_NNB*PROBDIM];   // points
 	double fd[MAX_NNB];     // function values
 
-#pragma omp parallel for
+// #pragma omp parallel for
 	for (int i = 0; i < knn; i++) {
 		fd[i] = ydata[nn_x[i]];
 	}
 
-#pragma omp parallel for
+// #pragma omp parallel for
 	for (int i = 0; i < knn; i++) {
 		for (int j = 0; j < PROBDIM; j++) {
 			xd[i*dim+j] = xdata[nn_x[i]][j];
@@ -157,17 +190,20 @@ int main(int argc, char *argv[])
 
 	//FILE *fpout = fopen("output.knn.txt","w");
 
-	double t0, t1, t_first = 0.0, t_sum = 0.0;
+	double t0, t1, t_first = 0.0, t_sum = 0.0, t_total_0 = 0.0, t_total_1 = 0.0;
 	double sse = 0.0;
 	double err, err_sum = 0.0;
 
-// #pragma omp parallel for reduction(+:err_sum) reduction(+:sse)
+    t_total_0 = gettime();
+
+#pragma omp parallel for reduction(+:err_sum) reduction(+:sse) private(t0, t1)
     for (int i=0;i<QUERYELEMS;i++) {	/* requests */
 
         t0 = gettime();
         double yp = find_knn_value(&x[i*PROBDIM], PROBDIM, NNBS);
         t1 = gettime();
         t_sum += (t1-t0);
+
         if (i == 0) t_first = (t1-t0);
 
         sse += (y[i]-yp)*(y[i]-yp);
@@ -179,6 +215,8 @@ int main(int argc, char *argv[])
         //fprintf(fpout,"%.5f %.5f %.2f\n", y[i], yp, err);
         err_sum += err;
 	}
+
+    t_total_1 = gettime();
 
 	//fclose(fpout);
 
@@ -195,6 +233,7 @@ int main(int argc, char *argv[])
 	t_sum = t_sum*1000.0;			// convert to ms
 	t_first = t_first*1000.0;	// convert to ms
 	printf("Total time = %lf ms\n", t_sum);
+	printf("Total time = %lf ms\n", (t_total_1-t_total_0)*1000.0);
 	printf("Time for 1st query = %lf ms\n", t_first);
 	printf("Time for 2..N queries = %lf ms\n", t_sum-t_first);
 	printf("Average time/query = %lf ms\n", (t_sum-t_first)/(QUERYELEMS-1));
