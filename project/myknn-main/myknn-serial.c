@@ -7,6 +7,7 @@
 #define PROBDIM 2
 #endif
 
+
 #include "func.h"
 
 static double **xdata;
@@ -19,9 +20,8 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	int i, max_i;
 	double max_d, new_d;
 
-
 	// initialize pairs of index and distance 
-	for (i = 0; i < knn; i++) {
+	for (i = 0; i < NNBS; i++) {
 		nn_x[i] = -1;
 		nn_d[i] = 1e99-i;
 	}
@@ -38,19 +38,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	}
 
 	// sort the knn list 
-
-    int j;
-	int temp_x;
-	double temp_d;
-
-	for (i = (knn - 1); i > 0; i--) {
-		for (j = 1; j <= i; j++) {
-			if (nn_d[j-1] > nn_d[j]) {
-				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
-				temp_x = nn_x[j-1]; nn_x[j-1] = nn_x[j]; nn_x[j] = temp_x;
-			}
-		}
-	}
+    quicksort(nn_d, nn_x, 0, knn-1);
 
 	return;
 }
@@ -59,10 +47,25 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 /* compute an approximation based on the values of the neighbors */
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
-	int i;
-	double sum_v = 0.0;
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
 
+    /*
+    double sum_wv = 0.0;
+    double sum_w = 0.0;
+    double w;
+
+    for (int i = 0; i < knn; i++) {
+        w = 1.0 / (dist[i] + EPSILON);
+        sum_wv += w * ydata[i];
+        sum_w += w;
+    }
+
+    return sum_wv / sum_w;
+    */        
+
+
+	int i;
+	double sum_v = 0.0;
 	for (i = 0; i < knn; i++) {
 		sum_v += ydata[i];
 	}

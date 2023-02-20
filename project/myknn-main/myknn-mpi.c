@@ -22,7 +22,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 
 
 	// initialize pairs of index and distance 
-	for (i = 0; i < knn; i++) {
+	for (i = 0; i < NNBS; i++) {
 		nn_x[i] = -1;
 		nn_d[i] = 1e99-i;
 	}
@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
 	double t0, t1, t_first = 0.0, t_sum = 0.0;
 	double sse = 0.0;
 	double err, err_sum = 0.0;
-    double t_end;
 
     // Start and end for each process
     int start = rank * (QUERYELEMS / size);
