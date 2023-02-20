@@ -6,6 +6,54 @@
 #include <math.h>
 #include <stdlib.h>
 
+#define EPSILON 1e-6
+
+/* Sorting */
+void quicksort(double *nn_d, int *nn_x, int left, int right) {
+    if (left < right) {
+        int pivot_index = left + (right - left) / 2;
+        double pivot_value = nn_d[pivot_index];
+        int i = left;
+        int j = right;
+        while (i <= j) {
+            while (nn_d[i] < pivot_value) {
+                i++;
+            }
+            while (nn_d[j] > pivot_value) {
+                j--;
+            }
+            if (i <= j) {
+                double temp_d = nn_d[i];
+                nn_d[i] = nn_d[j];
+                nn_d[j] = temp_d;
+                int temp_x = nn_x[i];
+                nn_x[i] = nn_x[j];
+                nn_x[j] = temp_x;
+                i++;
+                j--;
+            }
+        }
+        quicksort(nn_d, nn_x, left, j);
+        quicksort(nn_d, nn_x, i, right);
+    }
+}
+
+void bubblesort(double *nn_d, int *nn_x, int knn) {
+    int j;
+	int temp_x;
+	double temp_d;
+
+	for (int i = (knn - 1); i > 0; i--) {
+		for (j = 1; j <= i; j++) {
+			if (nn_d[j-1] > nn_d[j]) {
+				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
+				temp_x = nn_x[j-1]; nn_x[j-1] = nn_x[j]; nn_x[j] = temp_x;
+			}
+		}
+	}
+}
+
+
 /* I/O routines */
 FILE *open_traindata(char *trainfile)
 {
