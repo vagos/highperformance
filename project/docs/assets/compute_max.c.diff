@@ -1,0 +1,11 @@
+--- compute_max.c.original	2023-02-20 16:04:25.679812827 +0200
++++ compute_max.c.modified	2023-02-20 16:05:08.850632104 +0200
+@@ -5,6 +5,7 @@
+     if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
+         nn_x[max_i] = i;
+         nn_d[max_i] = new_d;
++        max_d = compute_max_pos(nn_d, knn, &max_i);
+     }
+-    max_d = compute_max_pos(nn_d, knn, &max_i);
+ }
++
