@@ -38,7 +38,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	}
 
 	// sort the knn list 
-    quicksort(nn_d, nn_x, 0, knn-1);
+    // quicksort(nn_d, nn_x, 0, knn-1);
 
 	return;
 }
