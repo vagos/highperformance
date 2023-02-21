@@ -102,15 +102,15 @@ int main(int argc, char *argv[])
 	double *err_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 
 #pragma acc enter data copyin(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS])
-#pragma acc enter data copyin(x[0:QUERYELEMS][0:PROBDIM], y[0:QUERYELEMS])
+#pragma acc enter data copyin(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS])
 #pragma acc enter data copyin(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB])
-#pragma acc enter data copyin(y_pred[0:QUERYELEMS])
+// #pragma acc enter data copyin(y_pred[0:QUERYELEMS])
 
 	double t0, t1,t_sum = 0.0;
 	t0 = gettime();
 
 	// compute distances
-#pragma acc kernels loop independent collapse(2)
+#pragma acc kernels loop independent
 	for (int i = 0; i < QUERYELEMS; i++) {
 		for (int j = 0; j < TRAINELEMS; j++) {
 			dist[i*TRAINELEMS+j] = compute_dist(&x[i*PROBDIM], xdata[j], PROBDIM);
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 	}
 
 //copyout dist[0:QUERYELEMS*TRAINELEMS]
-#pragma acc update host(dist[0:QUERYELEMS*TRAINELEMS])
+#pragma acc update host(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], x[0:QUERYELEMS*PROBDIM])
 
 printf("dist[0] = %f\n", dist[0]);
 
@@ -130,10 +130,10 @@ printf("dist[0] = %f\n", dist[0]);
 	}
 
 	for (int i = 0; i < QUERYELEMS; i++) {
+
 		int max_i;
 		double max_d, new_d;
 		int knn = NNBS;
-
 		
 		max_d = compute_max_pos(&nn_d[i*MAX_NNB], knn, &max_i);
 
