@@ -153,7 +153,7 @@
             \node [draw, fill=blue!20, minimum width=1cm, minimum height=1cm, below=.3cm of query2] (query3)  {k-NN query};
             \node [draw, fill=blue!20, minimum width=1cm, minimum height=1cm, below=.3cm of query3] (query4)  {k-NN query};
 
-            \draw [decorate, decoration = {brace, amplitude=10pt}] (query1.north east) -- (query4.south east)  node [midway, label=right:Parallel] {};
+            \draw [decorate, decoration = {brace, amplitude=5pt}] (query1.north east) -- (query4.south east)  node [midway, label=right:Parallel] {};
         \end{tikzpicture}
         \caption{Παραλληλοποίηση επιπέδου query.}
     \end{subfigure}
@@ -185,9 +185,16 @@
 Αυτό βέβαια δεν έχει σημασία για το τελικό αποτέλεσμα.
 Συνεπώς, μπορούμε να αφαιρέσουμε ολοκλληρωτικά τη ρουτίνα ταξινόμησης.
 
+Αρχικά είχαμε δοκιμάσει να χρησιμοποιήσουμε τον αλγόριθμο merge sort \cite{mergesort} 
+αξιοποιώντας την παραλληλίσιμη φύση του.
+Ωστόσο, οι μετρήσεις ταχύτητας έδειξαν πως δεν υπήρχε βελτίωση διότι ο πίνακας 
+τον οποίο ταξινομούμε είναι πολύ μικρός σε μέγεθος ($k$ στοιχεία).
+
 \subsubsection{Αναδιάταξη Πράξεων}
 
-Παρατηρώντας τα αποτελέσματα του profiler, βλέπουμε πως αφιερώνεται αρκετός χρόνος στη συνάρτηση \src{compute\_max\_pos}.
+\begin{itemize}
+
+    \item Παρατηρώντας τα αποτελέσματα του profiler, βλέπουμε πως αφιερώνεται αρκετός χρόνος στη συνάρτηση \src{compute\_max\_pos}.
 Έτσι, αναλύοντας τον κώδικα παρατηρήσαμε πως η συνάρτηση αυτή χρησιμοποιείται στη συνάρτηση \src{compute\_distance} σε μεγαλύτερο 
 βαθμό απ'ότι χρειάζεται.
 
@@ -197,14 +204,42 @@
 κάθε επανάληψη, παρά μόνο τις φορές όπου υπάρχει υποψήφιο νέο σημείο με κοντινότερη απόσταση.
 Αυτή η \say{διόρθωση} δίνει σοβαρή επιτάχυνση στη σειριακή υλοποίηση.
 
+    \item Ακόμα, το ίδιο loop είναι υπεύθυνο για τον υπολογισμό των αποστάσεων μεταξύ 
+        του query point και των υπόλοιπων σημείων.
+        Έτσι, χωρίσαμε το μέρος του loop το οποίο υπολογίζει την απόσταση των σημείων 
+        και τα αποθηκεύουμε σε έναν ενδιάμεσο πίνακα (\src{d\_dist}). 
+        Στην συνέχεια αναφερόμαστε στην απόσταση του σημείου $q$ με το σημείο $i$
+        ώς \src{d\_dist[i]}.
+
+\lstinputlisting[language=diff]{./assets/dist.c.diff}
+
+\end{itemize}
+
+\subsubsection{Υπολογισμός Απόστασης}
+
+Για την σύγκριση της απόστασης μεταξύ δύο σημείων ισχύει:
+
+\begin{equation}
+    \begin{split}
+        dist(x_1, q) < dist(x_2, q) &= \\
+        \sqrt{(x_{11} - q_1)^2 + (x_{12} - q_2)^2} < \sqrt{(x_{21} - q_1)^2 + (x_{22} - q_2)^2} &= \\
+        {(x_{11} - q_1)^2 + (x_{12} - q_2)^2} < {(x_{21} - q_1)^2 + (x_{22} - q_2)^2}
+    \end{split}
+\end{equation}
+
+Συνεπώς, για τον υπολογισμό της απόστασης, εφόσων ο αλγόριθμός μας
+βασίζεται μόνο στη σύγκριση μεταξύ των αποστάσεων και όχι στις ακριβείς τιμές τους, μπορούμε 
+να αποφύγουμε τη συνάρτηση \src{sqrt} στον υπολογισμό της απόστασης. 
+Αυτό δίνει μία μικρή βελτίωση στο χρόνο εκτέλεσης.
+
+% TODO: Before and After MEASURMENTS
+
 \subsection{OpenMP}
 
 Στην OpenMP υλοποίηση του προγράμματος, αρχικά χρησιμοποιήσαμε μερικά OMP directives
 για να επιταχύνουμε μερικές από τις ρουτίνες του αλγορίθμου ΚΝΝ.
 Ωστόσο, παρατηρώντας ότι η πλειοψηφία των loops τρέχουν για λίγες επαναλήψεις, δεν πετύχαμε σημαντική επιτάχυνση στο χρόνο ανά query.
 Παραλληλοποιώντας όμως σε επίπεδο query, είχαμε μια σημαντική επιτάχυνση στο συνολικό χρόνο εκτέλεσης του προγράμματος.
-
-
 
 \subsection{OpenACC}
 
@@ -256,30 +291,18 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
     \label{fig:}
 \end{figure}
 
-Όπως ήταν αναμενόμενο, ο συνολικός χρόνος εκτέλσης του αλγορίθμου αυξήθηκε.
-Ωστόσο, ο χρόνος ανά query, έφτασε ταχύτητα ισάξια της OpenMP υλοποίησης, πράγμα που δεν μας κάνει εντύπωση αφού σε επίπεδο query οι δύο υλοποιήσεις είναι πανομοιότυπες.
-Αυτό οφείλεται στη μεγάλη απόκλιση μεταξύ του memory bandwidth και του network bandwidth.
-Ένα τυπικό laptop έχει memory bandwidth της τάξης των 10 Gb/s ενώ ένας κόμβος σε ένα cluster έχει network bandwidth της τάξης των 1 Gb/s.
-Αυτό σημαίνει ότι ο αλγόριθμος θα εκτελείται γρήγορα στον εκάστοτε κόμβο, αλλά η μεταφορά των δεδομένων από τον κύριο κόμβο στους υπόλοιπους και το αντίστροφο θα είναι πολύ πιο αργή.
+Τα specifications των μηχανημάτων του cluster είναι: 
 
-% setup ssh
-% setup nfs
-% change /etc/exports
-% exportfs -a
-% restart nfs
-% from client: sudo mount -t nfs -o master:/home/vagozino/mpi
-% run RUN_CMD="mpirun -np 4 --host laptop:0,desktop:4 ./diffusion2d_mpi $D $L $N $T $DT" 
+\begin{itemize}
+    \item desktop: \src{Intel(R) Core(TM) i7-4770 CPU @ 3.40GHz}
+    \item laptops: \src{Intel(R) Core(TM) i3-2310M CPU @ 2.10GHz} 
+\end{itemize}
 
-% mpi 1 machine: 4.307 time/query 20.35ms 
-% mpi 3 machines: 26.753 time/query 12.54ms
-
-% create a bar plot for the total time for 1 machine and 3 machines
-% create a bar plot for the time/query for 1 machine and 3 machines
 \begin{figure}[H]
     \begin{center}
 \begin{tikzpicture}
     \begin{axis}[
-        xlabel={Αριθμός Μηχανημάτων},
+        xlabel={Αριθμός Queries},
         ylabel={Time (s)},
         xtick=data,
         xticklabels={32, 1024, 2048},
@@ -304,6 +327,10 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
     \caption{Χρόνοι εκτέλεσης της υλοποίησης με τον κώδικα MPI να τρέχει σε 1 Μηχάνημα (4 slots) και 3 Μηχανήματα (6 slots)}
     \label{fig:cluster_times}
 \end{figure}
+
+Ο συνολικός χρόνος εκτέλεσης πράγματι βελτιώνεται σε μεγάλο αριθμό queries αφού η μεταφορά δεδομένων μεταξύ των μηχανημάτων γίνεται μόνο
+μετά τη λήξη εκτέλεσης του αλγορίθμου, πράγμα που κάνει το μεγάλο latency του δικτύου λιγότερο καταστροφικό στην ταχύτητα.
+Ενδεχομένως να είχαμε περεταίρω βελτίωση τα συστήματα επικοινωνούσαν μεταξύ τους με ethernet υψηλής ταχύτητας. \cite{mpi-ethernet}
 
 \section{Μετρήσεις}
 

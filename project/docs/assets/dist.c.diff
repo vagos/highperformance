@@ -1,0 +1,13 @@
+--- dist.orig	2023-02-21 14:10:57.525714171 +0200
++++ dist.mod	2023-02-21 14:14:16.494154540 +0200
+@@ -1,5 +1,9 @@
+ for (i = 0; i < npat; i++) {
+-    new_d = compute_dist(q, xdata[i], lpat);	// euclidean
++    d_dist[i] = compute_dist(q, xdata[i], lpat);
++}
++
++for (i = 0; i < npat; i++) {
++    new_d = d_dist[i];
+     if (new_d < max_d) {
+         nn_x[max_i] = i;
+         nn_d[max_i] = new_d;
