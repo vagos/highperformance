@@ -14,7 +14,6 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 
-
 \usetikzlibrary{positioning}
 
 % Define a macro to create a table with fixed column widths
@@ -100,6 +99,15 @@
 \maketitle 
 
 % \tableofcontents
+
+\section{Εισαγωγή}
+
+Στην εργασία αυτή σκοπός είναι η επιτάχυνση ενός προγράμματος, το οποίο
+δοθέντος ενός συνόλου σημείων $x$ και της αντίστοιχης τιμής $y = f(x)$ (για οποιαδήποτε συνάρτηση $f$), 
+θα είναι σε θέση, δοθέντος ενός νέου σημείο $x'$ θα μπορεί να προβλέψει, με τη χρήση του αλγορίθμου 
+k-Nearest Neighbors (KNN) την αντίστοιχη τιμή $y'$.
+
+Η συνάρτηση με βάση την οποία παράγουμε τα σημεία είναι η 16-διάστατη συνάρτηση \say{κύκλου}.
 
 \section{Υλοποιήσεις}
 
@@ -227,12 +235,51 @@
     \end{split}
 \end{equation}
 
-Συνεπώς, για τον υπολογισμό της απόστασης, εφόσων ο αλγόριθμός μας
+Συνεπώς, για τον υπολογισμό της απόστασης, εφόσον ο αλγόριθμός μας
 βασίζεται μόνο στη σύγκριση μεταξύ των αποστάσεων και όχι στις ακριβείς τιμές τους, μπορούμε 
 να αποφύγουμε τη συνάρτηση \src{sqrt} στον υπολογισμό της απόστασης. 
 Αυτό δίνει μία μικρή βελτίωση στο χρόνο εκτέλεσης.
 
+\subsubsection{Inverse Weight Average}
+
+Τέλος, για την πρόβλεψη της νέας τιμής για το κάθε σημείο με βάση τα $k$ κοντινότερα 
+σημεία, ανταλλάξαμε την αρχική υλοποίηση που υπολόγιζε την μέση τιμή (mean) της τιμής 
+της συνάρτησης στα $k$ σημεία, με τη μετρική inverse distance weight.
+
 % TODO: Before and After MEASURMENTS
+
+\subsubsection{Τελική Σύγκριση}
+
+\begin{figure}[H]
+    \begin{center}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Queries},
+        ylabel={Χρόνος (s)},
+        xtick=data,
+        xticklabels={32, 1024},
+        ybar,
+        enlarge x limits=0.15,
+        bar width=10pt,
+        legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
+        legend entries={Πριν, Βελτιωμένο},
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={yshift=-2pt},
+        every axis plot post/.append style={fill=blue!20},
+        ]
+        \addplot coordinates {(32, 1.2) (1024, 39.6)};
+        \addplot coordinates {(32, 0.47) (1024, 15)};
+    \end{axis}
+\end{tikzpicture}
+    \end{center}
+    \caption{Χρόνοι εκτέλεσης της σειριακής υλοποίησης πριν και μετά τις βελτιώσεις.}
+    \label{fig:before_after_times}
+\end{figure}
+
 
 \subsection{OpenMP}
 
@@ -261,11 +308,17 @@ query με όλα τα άλλα σημεία.
 ουσιαστικά το κάθε process θα εκτελεί όλα τα queries που του αντιστοιχούν.
 Αυτό έγινε για να ελαχιστοποιήσουμε τις μεταφορές δεδομένων μεταξύ των διεργασιών, αφού δεν θα υπάρχει ανταλλαγή δεδομένων παρά μόνο στην εκκίνηση και στη λήξη του αλγορίθμου.
 
+Η λύση στην οποία καταλήξαμε έχει το μειονέκτημα ότι πρέπει ολόκληρο το training dataset να είναι παρών σε καθένα από 
+τους MPI κόμβους.
+
+Μια εναλλακτική προσέγγιση θα ήταν ο διαχωρισμός του πίνακα \src{x\_data}, έτσι ώστε σε κάθε query
+να γινόταν παράλληλα ο υπολογισμός απόστασης του σημείου \src{q} με το κάθε σημείο ενός υποσύνολου του training set.
+
 \subsubsection{MPI Cluster και OpenMP}
 
 Επόμενος στόχος ήταν η δημιουργία ενός MPI cluster, όπου θα είχαμε παραπάνω από ένα μηχάνημα μέσα σε περιβάλλον LAN να εκτελούν τα queries.
 
-Οι διεργασίες που εκτελούνται στον κάθε cluster μπορούν να παραλληλοποιηθούν περεταίρω..
+Οι διεργασίες που εκτελούνται στον κάθε cluster μπορούν να παραλληλοποιηθούν περαιτέρω.
 Έτσι, αφού είχαμε τη βασική υλοποίηση με MPI, προσθέσαμε στον κώδικα παραλληλοποίηση με OpenMP στον κώδικα του αλγορίθμου k-NN.
 
 Τα βήματα για να δημιουργήσουμε ένα MPI cluster είναι τα εξής:
@@ -310,7 +363,7 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
         enlarge x limits=0.15,
         bar width=10pt,
         legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
-        legend entries={1 Machine, 3 Machines},
+        legend entries={1 Μηχάνημα, 3 Μηχανήματα},
         ymajorgrids=true,
         y grid style=dashed,
         nodes near coords,
@@ -330,9 +383,40 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
 
 Ο συνολικός χρόνος εκτέλεσης πράγματι βελτιώνεται σε μεγάλο αριθμό queries αφού η μεταφορά δεδομένων μεταξύ των μηχανημάτων γίνεται μόνο
 μετά τη λήξη εκτέλεσης του αλγορίθμου, πράγμα που κάνει το μεγάλο latency του δικτύου λιγότερο καταστροφικό στην ταχύτητα.
-Ενδεχομένως να είχαμε περεταίρω βελτίωση τα συστήματα επικοινωνούσαν μεταξύ τους με ethernet υψηλής ταχύτητας. \cite{mpi-ethernet}
+Ενδεχομένως να είχαμε περαιτέρω βελτίωση τα συστήματα επικοινωνούσαν μεταξύ τους με ethernet υψηλής ταχύτητας. \cite{mpi-ethernet}
 
 \section{Μετρήσεις}
+
+\begin{figure}[H]
+    \begin{center}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Queries},
+        ylabel={Time (ms)},
+        xtick=data,
+        xticklabels={32, 1024},
+        ybar,
+        enlarge x limits=0.15,
+        bar width=10pt,
+        legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
+        legend entries={Serial, OpenMP, MPI},
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={yshift=-2pt},
+        every axis plot post/.append style={fill=blue!20},
+        ]
+        \addplot coordinates {(32, 13.9) (1024, 13.0)};
+        \addplot coordinates {(32, 13.0) (1024, 8.4)};
+        \addplot coordinates {(32, 11.0) (1024, 12.1)};
+    \end{axis}
+\end{tikzpicture}
+    \end{center}
+    \caption{Χρόνος εκτέλεσης/query για κάθε υλοποίηση}
+    \label{fig:cluster_times}
+\end{figure}
 
 \section{Έλεγχος Αποτελεσμάτων}
 
@@ -343,16 +427,16 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
     \centering
     \begin{tabular}{|l|c|c|c|c|c|}
     \hline
-        Implementation & APE   & MSE   & $R^2$ & Total Time & Avg Time/Query \\ \hline
-        Serial         & 0.000 & 0.000 & 1.000 & 0.000      & 0.000          \\
-        OpenMP         & 0.000 & 0.000 & 1.000 & 0.000      & 0.000          \\
-        OpenACC        & 0.000 & 0.000 & 1.000 & 0.000      & 0.000          \\
-        MPI            & 0.000 & 0.000 & 1.000 & 0.000      & 0.000          \\
-        CUDA           & 0.000 & 0.000 & 1.000 & 0.000      & 0.000          \\
+        Implementation & APE   & MSE   & $R^2$ \\ \hline
+        Serial         & 0.000 & 0.000 & 1.000 \\
+        OpenMP         & 0.000 & 0.000 & 1.000 \\
+        OpenACC        & 0.000 & 0.000 & 1.000 \\
+        MPI            & 0.000 & 0.000 & 1.000 \\
+        CUDA           & 0.000 & 0.000 & 1.000 \\
     \hline
     \end{tabular}
 
-    \caption{Έλεγχος ορθότητας των αποτελεσμάτων.}
+    \caption{Έλεγχος ορθότητας των αποτελεσμάτων. (1024 σημεία)}
 \end{table}
 
 
