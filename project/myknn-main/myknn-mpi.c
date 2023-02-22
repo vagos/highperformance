@@ -30,7 +30,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	max_d = compute_max_pos(nn_d, knn, &max_i);
 
 	for (i = 0; i < npat; i++) {
-		new_d = compute_dist(q, xdata[i], lpat);	// euclidean
+		new_d = compute_dist(q, xdata[i], lpat);
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
 			nn_x[max_i] = i;
 			nn_d[max_i] = new_d;
@@ -60,15 +60,18 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 /* compute an approximation based on the values of the neighbors */
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
-	int i;
-	double sum_v = 0.0;
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
+    double sum_wv = 0.0;
+    double sum_w = 0.0;
+    double w;
 
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
+    for (int i = 0; i < knn; i++) {
+        w = 1.0 / (dist[i] + EPSILON);
+        sum_wv += w * ydata[i];
+        sum_w += w;
+    }
 
-	return sum_v/knn;
+    return sum_wv / sum_w;
 }
 
 
@@ -150,17 +153,18 @@ int main(int argc, char *argv[])
 
 	fclose(fpin);
 
-    
     int rank, size;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-	
-    //FILE *fpout = fopen("output.knn.txt","w");
 
-	double t0, t1, t_first = 0.0, t_sum = 0.0;
+	double t0, t1, t_first = 0.0, t_sum = 0.0, t_total_0 = 0.0, t_total_1 = 0.0;;
 	double sse = 0.0;
 	double err, err_sum = 0.0;
+
+    t_total_0 = gettime();
+	
+    //FILE *fpout = fopen("output.knn.txt","w");
 
     // Start and end for each process
     int start = rank * (QUERYELEMS / size);
@@ -190,6 +194,8 @@ int main(int argc, char *argv[])
     MPI_Reduce(&err_sum, &err_sum_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&sse, &sse_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&t_sum, &t_sum_global, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    
+    t_total_1 = gettime();
 
     if (rank == 0) {
         err_sum = err_sum_global;
@@ -209,18 +215,13 @@ int main(int argc, char *argv[])
         t_sum = t_sum*1000.0;			// convert to ms
         t_first = t_first*1000.0;	// convert to ms
         printf("Total time with t_sum = %lf ms\n", t_sum);
+        printf("Total time with t_total = %lf ms\n", (t_total_1-t_total_0)*1000.0);
         printf("Time for 1st query = %lf ms\n", t_first);
         printf("Time for 2..N queries = %lf ms\n", t_sum-t_first);
         printf("Average time/query = %lf ms\n", (t_sum-t_first)/(QUERYELEMS-1));
     }
 
-    // if(rank == 0) {
-    //     double t_end = gettime();
-    //     printf("Total time = %lf ms\n", (t_end - t_start)*1000.0);
-    // }
-
     MPI_Finalize();
-    
 
 	return 0;
 }
