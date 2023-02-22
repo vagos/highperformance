@@ -101,15 +101,10 @@ int main(int argc, char *argv[])
 	double *sse_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 	double *err_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 
-#pragma acc enter data copyin(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS])
-#pragma acc enter data copyin(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS])
-#pragma acc enter data create(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB])
-#pragma acc enter data create(y_pred[0:QUERYELEMS])
-
 	double t0, t1,t_sum = 0.0;
 	t0 = gettime();
 
-#pragma acc data present(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS], x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS], dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], y_pred[0:QUERYELEMS])
+#pragma acc data copyin(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS]) copyin(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS]) create(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB]) copyout(y_pred[0:QUERYELEMS])
 {
 
 	// compute distances
@@ -122,7 +117,7 @@ int main(int argc, char *argv[])
 
 //copyout dist[0:QUERYELEMS*TRAINELEMS]
 
-#pragma acc kernels loop independent present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], dist[0:QUERYELEMS*TRAINELEMS])
+#pragma acc kernels loop independent
 	for(int i = 0; i < QUERYELEMS; i++) {
 		for(int j = 0; j < MAX_NNB; j++) {
 			nn_x[i*MAX_NNB+j] = -1;
@@ -134,7 +129,7 @@ int main(int argc, char *argv[])
     double max_d, new_d;
     int knn = NNBS;
 
-#pragma acc kernels loop independent private(max_i, max_d, new_d, knn) present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], dist[0:QUERYELEMS*TRAINELEMS])
+#pragma acc kernels loop independent private(max_i, max_d, new_d, knn)
 	for (int i = 0; i < QUERYELEMS; i++) {
 
 		max_d = compute_max_pos(&nn_d[i*MAX_NNB], knn, &max_i);
@@ -149,13 +144,13 @@ int main(int argc, char *argv[])
 		}
 
 		// sort the knn list 
-		quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
+		// quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
 	}
 	
 // #pragma acc update host(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], x[0:QUERYELEMS*PROBDIM])
 
 	// compute the predicted values
-#pragma acc kernels loop independent present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], y_pred[0:QUERYELEMS])
+#pragma acc kernels loop independent
 	for (int i = 0; i < QUERYELEMS; i++) {
 		int knn = NNBS;
 		int dim = PROBDIM;
@@ -180,11 +175,6 @@ int main(int argc, char *argv[])
 		y_pred[i] = fi;
 	}
 }
-
-#pragma acc exit data copyout(y_pred[0:QUERYELEMS])
-#pragma acc exit data delete(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS])
-#pragma acc exit data delete(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS])
-#pragma acc exit data delete(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB])
 
 	t1 = gettime();
 	t_sum += (t1-t0);

@@ -5,3 +5,7 @@
 **/.vscode/*
 
 **/test/*
+ex1/src
+ex2
+ex3
+project/myknn-main/.cache/clangd/index
