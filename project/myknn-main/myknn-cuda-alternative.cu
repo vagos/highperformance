@@ -15,6 +15,26 @@ static double ydata[TRAINELEMS];
 
 #define MAX_NNB	256
 
+__global__ void compute_dist(double *xdata, double *q, int npat, int lpat, double *dist)
+{
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < QUERYELEMS && j < TRAINELEMS) {
+        double sum = 0.0;
+        for (int k = 0; k < PROBDIM; k++) {
+            double diff = q[i*PROBDIM+k] - xdata[j*PROBDIM+k];
+            sum += diff * diff;
+        }
+        dist[i*TRAINELEMS+j] = sum;
+    }
+    if (i == 1 && j == 0) {
+        //print q[0] and xdata[0]
+        printf("q[i] = %f, xdata[i] = %f\n", q[i*PROBDIM+j], xdata[j*PROBDIM+j]);
+        printf("dist[0] = %f\n", dist[i*TRAINELEMS+j]);
+    }
+}
+
 
 /* compute an approximation based on the values of the neighbors */
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
@@ -94,45 +114,44 @@ int main(int argc, char *argv[])
 
 	fclose(fpin);
 
-	double *dist = (double *)malloc(QUERYELEMS*TRAINELEMS*sizeof(double));
+	double *dist;
+    cudaHostAlloc((void **)&dist, QUERYELEMS*TRAINELEMS*sizeof(double), cudaHostAllocDefault);
 	int *nn_x = (int *)malloc(QUERYELEMS*MAX_NNB*sizeof(int));
 	double *nn_d = (double *)malloc(QUERYELEMS*MAX_NNB*sizeof(double));
 	double *y_pred = (double *)malloc(QUERYELEMS*sizeof(double));
 	double *sse_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 	double *err_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 
-	double t0, t1,t_sum = 0.0;
-	
+    double *dist_d, *x_d, *xmem_d;
+    cudaMalloc((void **)&dist_d, QUERYELEMS*TRAINELEMS*sizeof(double));
+    cudaMalloc((void **)&x_d, QUERYELEMS*PROBDIM*sizeof(double));
+    cudaMalloc((void **)&xmem_d, TRAINELEMS*PROBDIM*sizeof(double));
+    cudaMemcpy(xmem_d, xmem, TRAINELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(x_d, x, QUERYELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
 
-#pragma acc data copyin(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS]) copyin(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS]) create(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB]) copyout(y_pred[0:QUERYELEMS])
-{
+
+	double t0, t1, t_first = 0.0, t_sum = 0.0;
+    dim3 threadsPerBlock(32, 32);
+    dim3 numBlocks((QUERYELEMS + threadsPerBlock.x - 1) / threadsPerBlock.x, (TRAINELEMS + threadsPerBlock.y - 1) / threadsPerBlock.y);
 	t0 = gettime();
 
-	// compute distances
-#pragma acc kernels loop independent gang vector collapse(2) present(dist[0:QUERYELEMS*TRAINELEMS])
-	for (int i = 0; i < QUERYELEMS; i++) {
-		for (int j = 0; j < TRAINELEMS; j++) {
-			dist[i*TRAINELEMS+j] = compute_dist(&x[i*PROBDIM], xdata[j], PROBDIM);
-		}
-	}
+    compute_dist<<<numBlocks, threadsPerBlock>>>(xmem_d, x_d, TRAINELEMS, PROBDIM, dist_d);
+    cudaMemcpy(dist, dist_d, QUERYELEMS*TRAINELEMS*sizeof(double), cudaMemcpyDeviceToHost); 
 
-//copyout dist[0:QUERYELEMS*TRAINELEMS]
-
-#pragma acc kernels loop independent gang vector collapse(2) present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB])
 	for(int i = 0; i < QUERYELEMS; i++) {
-		for(int j = 0; j < NNBS; j++) {
+		for(int j = 0; j < MAX_NNB; j++) {
 			nn_x[i*MAX_NNB+j] = -1;
 			nn_d[i*MAX_NNB+j] = 1e99-i;
 		}
 	}
 
-    int max_i;
-    double max_d, new_d;
-    int knn = NNBS;
-
-#pragma acc kernels loop independent private(max_i, max_d, new_d, knn) present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], dist[0:QUERYELEMS*TRAINELEMS])
 	for (int i = 0; i < QUERYELEMS; i++) {
+		int max_i;
+		double max_d, new_d;
+		int knn = NNBS;
+		int lpat = PROBDIM;
 
+		
 		max_d = compute_max_pos(&nn_d[i*MAX_NNB], knn, &max_i);
 
 		for (int j = 0; j < TRAINELEMS; j++) {
@@ -145,13 +164,11 @@ int main(int argc, char *argv[])
 		}
 
 		// sort the knn list 
-		// quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
+		quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
 	}
 	
-// #pragma acc update host(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], x[0:QUERYELEMS*PROBDIM])
 
-	// compute the predicted values
-#pragma acc kernels loop independent present(y_pred[0:QUERYELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], ydata[0:TRAINELEMS])
+	// // compute the predicted values
 	for (int i = 0; i < QUERYELEMS; i++) {
 		int knn = NNBS;
 		int dim = PROBDIM;
@@ -175,7 +192,6 @@ int main(int argc, char *argv[])
 
 		y_pred[i] = fi;
 	}
-}
 
 	t1 = gettime();
 	t_sum += (t1-t0);
