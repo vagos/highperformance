@@ -7,7 +7,6 @@
 #define PROBDIM 2
 #endif
 
-#include <openacc.h>
 
 #include "func.h"
 
@@ -95,40 +94,33 @@ int main(int argc, char *argv[])
 
 	fclose(fpin);
 
-	double *dist = (double *)acc_malloc(QUERYELEMS*TRAINELEMS*sizeof(double));
-	int *nn_x = (int *)acc_malloc(QUERYELEMS*MAX_NNB*sizeof(int));
-	double *nn_d = (double *)acc_malloc(QUERYELEMS*MAX_NNB*sizeof(double));
-
-//	double *dist; 
-//	int *nn_x; 
-//	double *nn_d;
-
+	double *dist = (double *)malloc(QUERYELEMS*TRAINELEMS*sizeof(double));
+	int *nn_x = (int *)malloc(QUERYELEMS*MAX_NNB*sizeof(int));
+	double *nn_d = (double *)malloc(QUERYELEMS*MAX_NNB*sizeof(double));
 	double *y_pred = (double *)malloc(QUERYELEMS*sizeof(double));
-
 	double *sse_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 	double *err_arr = (double *)malloc(QUERYELEMS*sizeof(double));
 
 	double t0, t1,t_sum = 0.0;
+	
 
+#pragma acc data copyin(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS]) copyin(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS]) create(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB]) copyout(y_pred[0:QUERYELEMS])
+{
 	t0 = gettime();
 
-#pragma acc data copyin(xdata[0:TRAINELEMS][0:PROBDIM], ydata[0:TRAINELEMS]) copyin(x[0:QUERYELEMS*PROBDIM], y[0:QUERYELEMS]) \
-    create(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB]) \
-    copyout(y_pred[0:QUERYELEMS])
-{
-
-
 	// compute distances
-#pragma acc kernels loop independent present(dist[0:QUERYELEMS*TRAINELEMS])
+#pragma acc kernels loop independent gang vector collapse(2) present(dist[0:QUERYELEMS*TRAINELEMS])
 	for (int i = 0; i < QUERYELEMS; i++) {
 		for (int j = 0; j < TRAINELEMS; j++) {
 			dist[i*TRAINELEMS+j] = compute_dist(&x[i*PROBDIM], xdata[j], PROBDIM);
 		}
 	}
 
-#pragma acc kernels loop independent present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB])
+//copyout dist[0:QUERYELEMS*TRAINELEMS]
+
+#pragma acc kernels loop independent gang vector collapse(2) present(nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB])
 	for(int i = 0; i < QUERYELEMS; i++) {
-		for(int j = 0; j < MAX_NNB; j++) {
+		for(int j = 0; j < NNBS; j++) {
 			nn_x[i*MAX_NNB+j] = -1;
 			nn_d[i*MAX_NNB+j] = 1e99-i;
 		}
@@ -151,10 +143,15 @@ int main(int argc, char *argv[])
 				max_d = compute_max_pos(&nn_d[i*MAX_NNB], knn, &max_i);
 			}
 		}
+
+		// sort the knn list 
+		// quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
 	}
 	
+// #pragma acc update host(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], x[0:QUERYELEMS*PROBDIM])
+
 	// compute the predicted values
-#pragma acc parallel loop independent
+#pragma acc kernels loop independent present(y_pred[0:QUERYELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], ydata[0:TRAINELEMS])
 	for (int i = 0; i < QUERYELEMS; i++) {
 		int knn = NNBS;
 		int dim = PROBDIM;
@@ -162,12 +159,10 @@ int main(int argc, char *argv[])
 		double xd[MAX_NNB*PROBDIM];   // points
 		double fd[MAX_NNB];     // function values
 
-#pragma acc loop independent
 		for (int j = 0; j < knn; j++) {
 			fd[j] = ydata[nn_x[i*MAX_NNB+j]];
 		}
 
-#pragma acc loop independent
 		for (int j = 0; j < knn; j++) {
 			for (int k = 0; k < PROBDIM; k++) {
 				xd[j*dim+k] = xdata[nn_x[i*MAX_NNB + j]][k];
@@ -180,19 +175,18 @@ int main(int argc, char *argv[])
 
 		y_pred[i] = fi;
 	}
-
 }
 
 	t1 = gettime();
 	t_sum += (t1-t0);
 
-	// compute the error
+	// // compute the error
 	for (int i = 0; i < QUERYELEMS; i++) {
 		sse_arr[i] = (y[i]-y_pred[i])*(y[i]-y_pred[i]);
 		err_arr[i] = 100.0*fabs((y[i]-y_pred[i])/y[i]);
 	}
 
-	// compute the average error
+	// // compute the average error
 	double sse = 0.0;
 	double err_sum = 0.0;
 	for (int i = 0; i < QUERYELEMS; i++) {
