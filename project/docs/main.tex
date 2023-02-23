@@ -63,6 +63,10 @@
     showtabs=false,                  
     tabsize=2
 }
+\usepackage{tocloft}
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsecpagefont}{\normalfont}
+\addto\captionsgreek{\renewcommand{\contentsname}{\normalfont Περιεχόμενα}}
 
 \lstset{style=mystyle}
 
@@ -97,8 +101,7 @@
 \begin{document}
 
 \maketitle 
-
-% \tableofcontents
+\tableofcontents
 
 \section{Εισαγωγή}
 
@@ -108,6 +111,12 @@
 k-Nearest Neighbors (KNN) την αντίστοιχη τιμή $y'$.
 
 Η συνάρτηση με βάση την οποία παράγουμε τα σημεία είναι η 16-διάστατη συνάρτηση \say{κύκλου}.
+
+Σε όλες τις μετρήσεις, ετκός και αν επισημαίνεται διαφορετικά, χρησιμοποιούμε μηχάνημα με τα εξής χαρακτηριστικά:
+\begin{itemize}
+    \item Επεξεργαστής: \src{Intel(R) Core(TM) i7-3770K CPU @ 3.50GHz}
+    \item Κάρτα Γραφικών: \src{NVIDIA Corporation GK180GL [Tesla K40c]}
+\end{itemize}
 
 \section{Υλοποιήσεις}
 
@@ -246,16 +255,14 @@ k-Nearest Neighbors (KNN) την αντίστοιχη τιμή $y'$.
 σημεία, ανταλλάξαμε την αρχική υλοποίηση που υπολόγιζε την μέση τιμή (mean) της τιμής 
 της συνάρτησης στα $k$ σημεία, με τη μετρική inverse distance weight.
 
-% TODO: Before and After MEASURMENTS
-
-\subsubsection{Τελική Σύγκριση}
+\subsubsection{Μετρήσεις}
 
 \begin{figure}[H]
     \begin{center}
 \begin{tikzpicture}
     \begin{axis}[
         xlabel={Αριθμός Queries},
-        ylabel={Χρόνος (s)},
+        ylabel={Χρόνος/Query (ms)},
         xtick=data,
         xticklabels={32, 1024},
         ybar,
@@ -271,12 +278,12 @@ k-Nearest Neighbors (KNN) την αντίστοιχη τιμή $y'$.
         every node near coord/.append style={yshift=-2pt},
         every axis plot post/.append style={fill=blue!20},
         ]
-        \addplot coordinates {(32, 1.2) (1024, 39.6)};
-        \addplot coordinates {(32, 0.47) (1024, 15)};
+        \addplot coordinates {(1024, 41)};
+        \addplot coordinates {(1024, 10)};
     \end{axis}
 \end{tikzpicture}
     \end{center}
-    \caption{Χρόνοι εκτέλεσης της σειριακής υλοποίησης πριν και μετά τις βελτιώσεις.}
+    \caption{Συνολικός χρόνος εκτέλεσης/query της σειριακής υλοποίησης πριν και μετά τις βελτιώσεις.}
     \label{fig:before_after_times}
 \end{figure}
 
@@ -288,6 +295,59 @@ k-Nearest Neighbors (KNN) την αντίστοιχη τιμή $y'$.
 Ωστόσο, παρατηρώντας ότι η πλειοψηφία των loops τρέχουν για λίγες επαναλήψεις, δεν πετύχαμε σημαντική επιτάχυνση στο χρόνο ανά query.
 Παραλληλοποιώντας όμως σε επίπεδο query, είχαμε μια σημαντική επιτάχυνση στο συνολικό χρόνο εκτέλεσης του προγράμματος.
 
+\subsubsection{Μετρήσεις}
+
+\begin{figure}[H]
+    \begin{center}
+        \begin{subfigure}[b]{0.5\textwidth}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Threads},
+        ylabel={Time/Query (ms)},
+        xtick=data,
+        xticklabels={2, 3, 4, 5, 6, 7, 8},
+        enlarge x limits=0.15,
+        bar width=10pt,
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={yshift=-2pt},
+        ]
+        \addplot coordinates {(2, 9.60) (3, 5.56) (4, 7.36) (5, 6.69) (6, 4.75) (7, 4.18) (8, 3.55)};
+    \end{axis}
+\end{tikzpicture}
+            \caption{Time}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.5\textwidth}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Threads},
+        ylabel={Time/Query Speedup},
+        xtick=data,
+        xticklabels={2, 3, 4, 5, 6, 7, 8},
+        enlarge x limits=0.15,
+        bar width=10pt,
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={},
+        ]
+        \addplot coordinates {(2 ,1.04) (3 ,1.79) (4 ,1.35) (5 ,1.49) (6 ,2.10) (7 ,2.38) (8 ,2.80)};
+    \end{axis}
+\end{tikzpicture}
+            \caption{Speedup}
+        \end{subfigure}
+    \end{center}
+    \caption{Μετρήσεις για την υλοποίηση OMP}
+    \label{fig:omp}
+\end{figure}
+
+
+
 \subsection{OpenACC}
 
 Για την υλοποίηση με OpenACC κάναμε προσέγγιση παρόμοια με αυτή της OpenMP, δηλαδή
@@ -295,12 +355,101 @@ k-Nearest Neighbors (KNN) την αντίστοιχη τιμή $y'$.
 Βασική διαφορά τώρα όμως είναι πως προκειμένου να δούμε μείωση στο συνολικό χρόνο εκτέλεσης έπρεπε 
 να ελαχιστοποιήσουμε τις μεταφορές δεδομένων μεταξύ επεξεργαστή και κάρτας γραφικών.
 
+\subsubsection{Μετρήσεις}
+
+\begin{figure}[H]
+    \begin{center}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Queries},
+        ylabel={Time (ms)},
+        xtick=data,
+        xticklabels={1024},
+        ybar,
+        enlarge x limits=0.15,
+        bar width=10pt,
+        legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
+        legend entries={Serial, OpenACC},
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={yshift=-2pt},
+        every axis plot post/.append style={fill=blue!20},
+        ]
+        \addplot coordinates {(1024, 10)};
+        \addplot coordinates {(1024, 6.69)};
+    \end{axis}
+\end{tikzpicture}
+    \end{center}
+    \caption{Χρόνος εκτέλεσης/query}
+    \label{fig:cluster_times}
+\end{figure}
+
+Έχουμε ένα τελικό speedup της τάξης του \textbf{1.5x}.
+
 \subsection{CUDA}
 
 Για την υλοποίηση με CUDA ουσιαστικά επιταχύνουμε την ρουτίνα υπολογισμού της απόστασης του σημείου
 query με όλα τα άλλα σημεία.
 Ορίζουμε ένα kernel \src{compute\_dist} το οποίο υπολογίζει την απόσταση του σημείου query με όλα τα άλλα σημεία 
 και αποθηκεύει τα αποτελέσματα σε ένα array.
+
+\subsubsection{Μετρήσεις}
+
+\begin{figure}[H]
+    \begin{center}
+        \begin{subfigure}[b]{0.5\textwidth}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Threads/Block},
+        ylabel={Time/Query (ms)},
+        xtick=data,
+        xticklabels={32, 64, 128, 256},
+        enlarge x limits=0.15,
+        bar width=10pt,
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={yshift=-2pt},
+        ]
+        \addplot coordinates {(32, 2.59) (64, 2.59) (128, 2.59) (256, 2.59)};
+    \end{axis}
+\end{tikzpicture}
+            \caption{Time}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.5\textwidth}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Threads/Block},
+        ylabel={Time/Query Speedup},
+        xtick=data,
+        xticklabels={32, 64, 128, 256},
+        enlarge x limits=0.15,
+        bar width=10pt,
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={},
+        ]
+        \addplot coordinates {(32, 3.89) (64, 3.89) (128, 3.89) (256, 3.89)};
+    \end{axis}
+\end{tikzpicture}
+            \caption{Speedup}
+        \end{subfigure}
+    \end{center}
+    \caption{Μετρήσεις για την υλοποίηση CUDA}
+    \label{fig:cuda}
+\end{figure}
+
+Το τελικό speedup είναι της τάξης του \textbf{3.89x}.
+Παρατηρούμε πως ο αριθμός των threads/block δεν επηρεάζει τον χρόνο εκτέλεσης.
+
 
 \subsection{MPI}
 
@@ -351,6 +500,8 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
     \item laptops: \src{Intel(R) Core(TM) i3-2310M CPU @ 2.10GHz} 
 \end{itemize}
 
+\subsubsection{Μετρήσεις}
+
 \begin{figure}[H]
     \begin{center}
 \begin{tikzpicture}
@@ -363,7 +514,7 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
         enlarge x limits=0.15,
         bar width=10pt,
         legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
-        legend entries={1 Μηχάνημα, 3 Μηχανήματα},
+        legend entries={Serial, 3 Μηχανήματα},
         ymajorgrids=true,
         y grid style=dashed,
         nodes near coords,
@@ -377,7 +528,7 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
     \end{axis}
 \end{tikzpicture}
     \end{center}
-    \caption{Χρόνοι εκτέλεσης της υλοποίησης με τον κώδικα MPI να τρέχει σε 1 Μηχάνημα (4 slots) και 3 Μηχανήματα (6 slots)}
+    \caption{Χρόνοι εκτέλεσης της υλοποίησης με τον κώδικα MPI σε 3 Μηχανήματα (6 slots)}
     \label{fig:cluster_times}
 \end{figure}
 
@@ -385,61 +536,84 @@ mpirun -np 6 --host laptop:1,desktop:4,ioanna:1 ./myknn-mpi x.txt q.txt
 μετά τη λήξη εκτέλεσης του αλγορίθμου, πράγμα που κάνει το μεγάλο latency του δικτύου λιγότερο καταστροφικό στην ταχύτητα.
 Ενδεχομένως να είχαμε περαιτέρω βελτίωση τα συστήματα επικοινωνούσαν μεταξύ τους με ethernet υψηλής ταχύτητας. \cite{mpi-ethernet}
 
-\section{Μετρήσεις}
+
+
+
 
 \begin{figure}[H]
     \begin{center}
+        \begin{subfigure}[b]{0.5\textwidth}
 \begin{tikzpicture}
     \begin{axis}[
-        xlabel={Αριθμός Queries},
-        ylabel={Time (ms)},
+        xlabel={Αριθμός Διεργασιών},
+        ylabel={Time/Query (ms)},
         xtick=data,
-        xticklabels={32, 1024},
-        ybar,
+        xticklabels={1, 2, 4, 6, 8, 16},
         enlarge x limits=0.15,
         bar width=10pt,
-        legend style={at={(0.5,-0.20)}, anchor=north, legend columns=-1},
-        legend entries={Serial, OpenMP, MPI},
         ymajorgrids=true,
         y grid style=dashed,
         nodes near coords,
         nodes near coords align={vertical},
         nodes near coords style={anchor=north},
         every node near coord/.append style={yshift=-2pt},
-        every axis plot post/.append style={fill=blue!20},
         ]
-        \addplot coordinates {(32, 13.9) (1024, 13.0)};
-        \addplot coordinates {(32, 13.0) (1024, 8.4)};
-        \addplot coordinates {(32, 11.0) (1024, 12.1)};
+        \addplot coordinates {(1 , 9.03) (2 , 4.38) (4 , 3.39) (6 , 3.52) (8 , 3.63) (16, 3.6)};
     \end{axis}
 \end{tikzpicture}
+            \caption{Time}
+        \end{subfigure}
+        \begin{subfigure}[b]{0.5\textwidth}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Αριθμός Διεργασιών},
+        ylabel={Time/Query Speedup},
+        xtick=data,
+        xticklabels={1, 2, 4, 6, 8, 16},
+        enlarge x limits=0.15,
+        bar width=10pt,
+        ymajorgrids=true,
+        y grid style=dashed,
+        nodes near coords,
+        nodes near coords align={vertical},
+        nodes near coords style={anchor=north},
+        every node near coord/.append style={},
+        ]
+        \addplot coordinates {(1, 1.00) (2, 2.06) (4, 2.66) (6, 2.56) (8, 2.48) (16, 2.50)};
+    \end{axis}
+\end{tikzpicture}
+            \caption{Speedup}
+        \end{subfigure}
     \end{center}
-    \caption{Χρόνος εκτέλεσης/query για κάθε υλοποίηση}
-    \label{fig:cluster_times}
+    \caption{Μετρήσεις για την υλοποίηση MPI σε ένα μηχάνημα.}
+    \label{fig:mpi}
 \end{figure}
+
+Με την υλοποίηση του MPI φτάνουμε σε επιτάχυνση της τάξης \textbf{2.5x}.
 
 \section{Έλεγχος Αποτελεσμάτων}
 
 Για τον έλεγχο αποτελεσμάτων βασιστήκαμε στις μετρήσεις που εμφανίζονται με την εκτέλεση του προγράμματος.
 Στον παρακάτω πίνακα παραθέτουμε τις μετρήσεις με την κάθε υλοποίηση.
 
+
+
 \begin{table}[H]
     \centering
     \begin{tabular}{|l|c|c|c|c|c|}
     \hline
         Implementation & APE   & MSE   & $R^2$ \\ \hline
-        Serial         & 0.000 & 0.000 & 1.000 \\
-        OpenMP         & 0.000 & 0.000 & 1.000 \\
-        OpenACC        & 0.000 & 0.000 & 1.000 \\
-        MPI            & 0.000 & 0.000 & 1.000 \\
-        CUDA           & 0.000 & 0.000 & 1.000 \\
+        Serial         & 4.79\% & 1.761781 & 0.922719 \\
+        OpenMP         & 4.79\% & 1.761781 & 0.922719 \\
+        OpenACC        & 4.79\% & 1.761781 & 0.922719 \\
+        MPI            & 4.79\% & 1.761781 & 0.922719 \\
+        CUDA           & 4.79\% & 1.761781 & 0.922719 \\
     \hline
     \end{tabular}
-
     \caption{Έλεγχος ορθότητας των αποτελεσμάτων. (1024 σημεία)}
 \end{table}
 
-
+Βλέπουμε πως όλα τα αποτελέσματα είναι ίδια με την υλοποίηση σε σειριακό κώδικα, οπότε η υλοποίηση μας είναι ορθή.
 
 \bibliography{bibliography}
 
