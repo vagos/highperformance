@@ -10,12 +10,12 @@
 
 #include "func.h"
 
-static double **xdata;
+static double *xdata;
 static double ydata[TRAINELEMS];
 
 #define MAX_NNB	256
 
-void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int knn, int *nn_x, double *nn_d)
+void compute_knn_brute_force(double *xdata, double *q, int npat, int lpat, int knn, int *nn_x, double *nn_d)
 {
 	int i, max_i;
 	double max_d, new_d;
@@ -30,26 +30,11 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	max_d = compute_max_pos(nn_d, knn, &max_i);
 
 	for (i = 0; i < npat; i++) {
-		new_d = compute_dist(q, xdata[i], lpat);
+		new_d = compute_dist(q, &xdata[i*PROBDIM], lpat);
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
 			nn_x[max_i] = i;
 			nn_d[max_i] = new_d;
 			max_d = compute_max_pos(nn_d, knn, &max_i);
-		}
-	}
-
-	// sort the knn list 
-
-    int j;
-	int temp_x;
-	double temp_d;
-
-	for (i = (knn - 1); i > 0; i--) {
-		for (j = 1; j <= i; j++) {
-			if (nn_d[j-1] > nn_d[j]) {
-				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
-				temp_x = nn_x[j-1]; nn_x[j-1] = nn_x[j]; nn_x[j] = temp_x;
-			}
 		}
 	}
 
@@ -93,7 +78,7 @@ double find_knn_value(double *p, int n, int knn)
 
 	for (int i = 0; i < knn; i++) {
 		for (int j = 0; j < PROBDIM; j++) {
-			xd[i*dim+j] = xdata[nn_x[i]][j];
+			xd[i*dim+j] = xdata[nn_x[i]*PROBDIM + j];
 		}
 	}
 
@@ -112,18 +97,26 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+    int rank, size;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    double *y;
+    double *x;
+
+    if (rank == 0) {
+
 	char *trainfile = argv[1];
 	char *queryfile = argv[2];
 
-	double *xmem = (double *)malloc(TRAINELEMS*PROBDIM*sizeof(double));
-	xdata = (double **)malloc(TRAINELEMS*sizeof(double *));
-	for (int i = 0; i < TRAINELEMS; i++) xdata[i] = xmem + i*PROBDIM; //&xmem[i*PROBDIM];
+	xdata = (double *)malloc(TRAINELEMS*PROBDIM*sizeof(double *));
 
 	FILE *fpin = open_traindata(trainfile);
 
 	for (int i=0;i<TRAINELEMS;i++) {
 		for (int k = 0; k < PROBDIM; k++)
-            xdata[i][k] = read_nextnum(fpin);
+            xdata[i*PROBDIM + k] = read_nextnum(fpin);
 
 #if defined(SURROGATES)
         ydata[i] = read_nextnum(fpin);
@@ -137,8 +130,8 @@ int main(int argc, char *argv[])
 
 	fpin = open_querydata(queryfile);
 
-	double *y = (double *)malloc(QUERYELEMS*sizeof(double));
-	double *x = (double *)malloc(QUERYELEMS*PROBDIM*sizeof(double));
+	y = (double *)malloc(QUERYELEMS*sizeof(double));
+	x = (double *)malloc(QUERYELEMS*PROBDIM*sizeof(double));
 
 	for (int i=0;i<QUERYELEMS;i++) {	/* requests */
 
@@ -153,10 +146,30 @@ int main(int argc, char *argv[])
 
 	fclose(fpin);
 
-    int rank, size;
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+        MPI_Request req[size];
+
+        for (int i = 1; i < size; i++) {
+
+            MPI_Isend(x, QUERYELEMS * PROBDIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &req[i]);
+            MPI_Isend(y, QUERYELEMS, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &req[i]);
+            MPI_Isend(xdata, TRAINELEMS * PROBDIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &req[i]);
+            MPI_Isend(ydata, TRAINELEMS, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &req[i]);
+        }
+
+        printf("Data read\n");
+    }
+    else
+    {
+        xdata = (double *)malloc(TRAINELEMS*PROBDIM*sizeof(double *));
+        y = (double *)malloc(QUERYELEMS*sizeof(double));
+        x = (double *)malloc(QUERYELEMS*PROBDIM*sizeof(double));
+
+        MPI_Recv(x, QUERYELEMS * PROBDIM, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(y, QUERYELEMS, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(xdata, TRAINELEMS * PROBDIM, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(ydata, TRAINELEMS, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+
 
 	double t0, t1, t_first = 0.0, t_sum = 0.0, t_total_0 = 0.0, t_total_1 = 0.0;;
 	double sse = 0.0;
@@ -189,12 +202,13 @@ int main(int argc, char *argv[])
 	}
 
 	//fclose(fpout);
+
     // reduction sum to rank 0 for error,sse and max time
     double err_sum_global, sse_global, t_sum_global;
     MPI_Reduce(&err_sum, &err_sum_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&sse, &sse_global, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     MPI_Reduce(&t_sum, &t_sum_global, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-    
+
     t_total_1 = gettime();
 
     if (rank == 0) {
