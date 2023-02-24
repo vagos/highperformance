@@ -13,7 +13,7 @@ LDFLAGS += -lm
 
 NVC = /opt/nvidia/hpc_sdk/Linux_x86_64/23.1/compilers/bin/nvc++ # set this as the path of your nvidia c++ compiler.
 
-all: gendata myknn-serial myknn-serial-alt myknn-omp myknn-mpi myknn-acc myknn-cuda myknn-omp-alt myknn-acc-alt myknn-cuda-alt
+all: gendata myknn-serial myknn-serial-alt myknn-omp myknn-mpi myknn-cuda myknn-omp-alt myknn-cuda-alt myknn-acc-alt
 
 myknn-cuda-alt: myknn-cuda-alternative.cu func.h
 	nvcc -o myknn-cuda-alt $(CFLAGS) myknn-cuda-alternative.cu $(LDFLAGS)
@@ -27,8 +27,8 @@ myknn-omp-alt: myknn-omp-alternative.c func.h
 myknn-serial-alt: myknn-serial-alternative.c func.h
 	g++ -o myknn-serial-alt $(CFLAGS) myknn-serial-alternative.c $(LDFLAGS)
 
-myknn-acc: myknn-acc.c func.h
-	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast 
+# myknn-acc: myknn-acc.c func.h
+# 	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast 
 
 myknn-cuda: myknn-cuda.cu func.h
 	nvcc -o myknn-cuda $(CFLAGS) myknn-cuda.cu $(LDFLAGS)
@@ -46,4 +46,4 @@ gendata: gendata.c func.h
 	g++ -o gendata $(CFLAGS) gendata.c $(LDFLAGS)
 
 clean:
-	rm -f myknn-serial myknn-omp myknn-mpi myknn-cuda myknn-acc myknn-omp-alt myknn-acc-alt myknn-cuda-alt gendata
+	rm -f myknn-serial myknn-omp myknn-mpi myknn-cuda myknn-acc myknn-omp-alt myknn-acc-alt myknn-cuda-alt gendata myknn-serial-alt x.txt q.txt
