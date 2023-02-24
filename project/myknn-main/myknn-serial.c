@@ -7,7 +7,6 @@
 #define PROBDIM 2
 #endif
 
-
 #include "func.h"
 
 static double **xdata;
@@ -37,7 +36,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 		}
 	}
 
-	// sort the knn list 
+	// sort the knn list (not needed)
     // quicksort(nn_d, nn_x, 0, knn-1);
 
 	return;
@@ -48,8 +47,6 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
-
-    /*
     double sum_wv = 0.0;
     double sum_w = 0.0;
     double w;
@@ -61,16 +58,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
     }
 
     return sum_wv / sum_w;
-    */        
-
-
-	int i;
-	double sum_v = 0.0;
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
-
-	return sum_v/knn;
 }
 
 

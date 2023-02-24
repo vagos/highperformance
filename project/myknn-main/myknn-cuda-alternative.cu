@@ -41,7 +41,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
 {
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
 
-    /*
     double sum_wv = 0.0;
     double sum_w = 0.0;
     double w;
@@ -53,16 +52,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
     }
 
     return sum_wv / sum_w;
-    */        
-
-
-	int i;
-	double sum_v = 0.0;
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
-
-	return sum_v/knn;
 }
 
 int main(int argc, char *argv[])
@@ -115,7 +104,8 @@ int main(int argc, char *argv[])
 	fclose(fpin);
 
 	double *dist;
-    cudaHostAlloc((void **)&dist, QUERYELEMS*TRAINELEMS*sizeof(double), cudaHostAllocDefault);
+    // cudaHostAlloc((void **)&dist, QUERYELEMS*TRAINELEMS*sizeof(double), cudaHostAllocDefault);
+    dist = (double*)malloc(QUERYELEMS*TRAINELEMS*sizeof(double));
 	int *nn_x = (int *)malloc(QUERYELEMS*MAX_NNB*sizeof(int));
 	double *nn_d = (double *)malloc(QUERYELEMS*MAX_NNB*sizeof(double));
 	double *y_pred = (double *)malloc(QUERYELEMS*sizeof(double));
@@ -130,7 +120,7 @@ int main(int argc, char *argv[])
     cudaMemcpy(x_d, x, QUERYELEMS*PROBDIM*sizeof(double), cudaMemcpyHostToDevice);
 
 
-	double t0, t1, t_first = 0.0, t_sum = 0.0;
+	double t0, t1, t_sum = 0.0;
     dim3 threadsPerBlock(32, 32);
     dim3 numBlocks((QUERYELEMS + threadsPerBlock.x - 1) / threadsPerBlock.x, (TRAINELEMS + threadsPerBlock.y - 1) / threadsPerBlock.y);
 	t0 = gettime();
@@ -149,9 +139,7 @@ int main(int argc, char *argv[])
 		int max_i;
 		double max_d, new_d;
 		int knn = NNBS;
-		int lpat = PROBDIM;
 
-		
 		max_d = compute_max_pos(&nn_d[i*MAX_NNB], knn, &max_i);
 
 		for (int j = 0; j < TRAINELEMS; j++) {
@@ -164,7 +152,7 @@ int main(int argc, char *argv[])
 		}
 
 		// sort the knn list 
-		quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
+		// quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
 	}
 	
 

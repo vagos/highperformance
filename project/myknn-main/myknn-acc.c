@@ -29,7 +29,7 @@ void compute_knn_brute_force(double **xdata, double *q, int n_train, int n_dim, 
     }
 
 
-    // max_d = compute_max_pos(nn_d, knn, &max_i);
+    max_d = compute_max_pos(nn_d, knn, &max_i);
 
 #pragma acc parallel loop independent present(nn_x[0:knn], nn_d[0:knn], xdata[0:n_train][0:n_dim], q[0:n_dim]) create(max_d) reduction(max:max_d) 
     for (i = 0; i < n_train; i++) {

@@ -44,13 +44,6 @@ void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, 
 
 	max_d = compute_max_pos(nn_d, knn, &max_i);
 
-    // create array of npat elements with cudaHostAlloc
-	// err = cudaHostAlloc((void **)&dist, npat*sizeof(double), cudaHostAllocDefault);
-	// if(err != cudaSuccess) {
-	// 	fprintf(stderr, "Failed to allocate host vector dist (error code %s)! %d\n", cudaGetErrorString(err), __LINE__);
-	// 	exit(EXIT_FAILURE);
-	// }
-
     int threadsPerBlock = 256;
     int blocksPerGrid = (npat + threadsPerBlock - 1) / threadsPerBlock;
 
@@ -66,11 +59,6 @@ void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, 
         exit(EXIT_FAILURE);
     }
 
-    // compute distances to all points
-    // for (i = 0; i < npat; i++) {
-    //     dist[i] = compute_dist(q, xdata[i], lpat);
-    // }
-
 	for (i = 0; i < npat; i++) {
 		new_d = dist[i];	// euclidean
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
@@ -81,20 +69,7 @@ void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, 
 		
 	}
 
-	// sort the knn list 
-
-    int j;
-	int temp_x;
-	double temp_d;
-
-	for (i = (knn - 1); i > 0; i--) {
-		for (j = 1; j <= i; j++) {
-			if (nn_d[j-1] > nn_d[j]) {
-				temp_d = nn_d[j-1]; nn_d[j-1] = nn_d[j]; nn_d[j] = temp_d;
-				temp_x = nn_x[j-1]; nn_x[j-1] = nn_x[j]; nn_x[j] = temp_x;
-			}
-		}
-	}
+	// sort the knn list (not needed)
 
 	return;
 }
@@ -103,15 +78,18 @@ void compute_knn_brute_force(double *xdata, double *q,double *d_dist, int npat, 
 /* compute an approximation based on the values of the neighbors */
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
-	int i;
-	double sum_v = 0.0;
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
+    double sum_wv = 0.0;
+    double sum_w = 0.0;
+    double w;
 
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
+    for (int i = 0; i < knn; i++) {
+        w = 1.0 / (dist[i] + EPSILON);
+        sum_wv += w * ydata[i];
+        sum_w += w;
+    }
 
-	return sum_v/knn;
+    return sum_wv / sum_w;
 }
 
 
@@ -254,15 +232,14 @@ int main(int argc, char *argv[])
 
 
 	//Free the allocated memory
-	// free(xmem);
-	// free(xdata);
-	// free(ydata);
-	// free(x);
-	// free(y);
+	free(xmem);
+	free(xdata);
+	free(x);
+	free(y);
 
-	// cudaFree(d_xmem);
-	// cudaFree(d_x);
-	// cudaFree(d_dist);
+	cudaFree(d_xmem);
+	cudaFree(d_x);
+	cudaFree(d_dist);
 
 	return 0;
 }

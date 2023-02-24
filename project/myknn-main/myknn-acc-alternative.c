@@ -21,7 +21,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
 {
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
 
-    /*
     double sum_wv = 0.0;
     double sum_w = 0.0;
     double w;
@@ -33,16 +32,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
     }
 
     return sum_wv / sum_w;
-    */        
-
-
-	int i;
-	double sum_v = 0.0;
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
-
-	return sum_v/knn;
 }
 
 int main(int argc, char *argv[])
@@ -148,8 +137,6 @@ int main(int argc, char *argv[])
 		// quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
 	}
 	
-// #pragma acc update host(dist[0:QUERYELEMS*TRAINELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], x[0:QUERYELEMS*PROBDIM])
-
 	// compute the predicted values
 #pragma acc kernels loop independent present(y_pred[0:QUERYELEMS], nn_x[0:QUERYELEMS*MAX_NNB], nn_d[0:QUERYELEMS*MAX_NNB], ydata[0:TRAINELEMS])
 	for (int i = 0; i < QUERYELEMS; i++) {

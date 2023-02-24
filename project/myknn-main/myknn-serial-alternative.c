@@ -7,7 +7,6 @@
 #define PROBDIM 2
 #endif
 
-
 #include "func.h"
 
 static double **xdata;
@@ -15,13 +14,11 @@ static double ydata[TRAINELEMS];
 
 #define MAX_NNB	256
 
-
 /* compute an approximation based on the values of the neighbors */
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
 
-    /*
     double sum_wv = 0.0;
     double sum_w = 0.0;
     double w;
@@ -33,16 +30,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
     }
 
     return sum_wv / sum_w;
-    */        
-
-
-	int i;
-	double sum_v = 0.0;
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
-
-	return sum_v/knn;
 }
 
 int main(int argc, char *argv[])
@@ -137,7 +124,7 @@ int main(int argc, char *argv[])
 		}
 
 		// sort the knn list 
-		quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
+		// quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
 	}
 	
 

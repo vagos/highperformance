@@ -8,7 +8,7 @@ HIGH ?= 2
 
 
 CFLAGS  = -DPROBDIM=$(DIM) -DNNBS=$(KNN) -DTRAINELEMS=$(TRA) -DQUERYELEMS=$(QUE) -DLB=$(LOW) -DUB=$(HIGH) -g -O3
-CFLAGS += -DSURROGATES -Wall
+CFLAGS += -DSURROGATES
 LDFLAGS += -lm
 
 NVC = /opt/nvidia/hpc_sdk/Linux_x86_64/23.1/compilers/bin/nvc++ # set this as the path of your nvidia c++ compiler.
@@ -16,10 +16,10 @@ NVC = /opt/nvidia/hpc_sdk/Linux_x86_64/23.1/compilers/bin/nvc++ # set this as th
 all: gendata myknn-serial myknn-serial-alt myknn-omp myknn-mpi myknn-acc myknn-cuda myknn-omp-alt myknn-acc-alt myknn-cuda-alt
 
 myknn-cuda-alt: myknn-cuda-alternative.cu func.h
-	$(NVC) -o myknn-cuda-alt $(CFLAGS) myknn-cuda-alternative.cu $(LDFLAGS)
+	nvcc -o myknn-cuda-alt $(CFLAGS) myknn-cuda-alternative.cu $(LDFLAGS)
 
 myknn-acc-alt: myknn-acc-alternative.c func.h
-	$(NVC) -o myknn-acc-alt $(CFLAGS) myknn-acc-alternative.c $(LDFLAGS) -acc -fast -Minfo=accel
+	$(NVC) -o myknn-acc-alt $(CFLAGS) myknn-acc-alternative.c $(LDFLAGS) -acc -fast 
 
 myknn-omp-alt: myknn-omp-alternative.c func.h
 	g++ -o myknn-omp-alt $(CFLAGS) myknn-omp-alternative.c $(LDFLAGS) -fopenmp
@@ -28,10 +28,10 @@ myknn-serial-alt: myknn-serial-alternative.c func.h
 	g++ -o myknn-serial-alt $(CFLAGS) myknn-serial-alternative.c $(LDFLAGS)
 
 myknn-acc: myknn-acc.c func.h
-	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast -Minfo=accel
+	$(NVC) -o myknn-acc $(CFLAGS) myknn-acc.c $(LDFLAGS) -acc -fast 
 
 myknn-cuda: myknn-cuda.cu func.h
-	$(NVC) -o myknn-cuda $(CFLAGS) myknn-cuda.cu $(LDFLAGS)
+	nvcc -o myknn-cuda $(CFLAGS) myknn-cuda.cu $(LDFLAGS)
 
 myknn-mpi: myknn-mpi.c func.h
 	mpicc -o myknn-mpi $(CFLAGS) myknn-mpi.c $(LDFLAGS)

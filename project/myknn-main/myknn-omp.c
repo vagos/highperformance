@@ -21,6 +21,8 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	int i, max_i;
 	double max_d, new_d;
 
+    // double *d_dist = (double*)malloc(npat*sizeof(double));
+
 	// initialize pairs of index and distance 
 	for (i = 0; i < NNBS; i++) {
 		nn_x[i] = -1;
@@ -30,7 +32,7 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 	max_d = compute_max_pos(nn_d, knn, &max_i);
 
 	for (i = 0; i < npat; i++) {
-		new_d = compute_dist(q, xdata[i], lpat);	// euclidean
+		new_d =  compute_dist(q, xdata[i], lpat);	// euclidean
 		if (new_d < max_d) {	// add point to the  list of knns, replace element max_i
 			nn_x[max_i] = i;
 			nn_d[max_i] = new_d;
@@ -38,8 +40,8 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
         }
 	}
 
-	// sort the knn list 
-    quicksort(nn_d, nn_x, 0, knn-1);
+	// sort the knn list (not needed)
+    // quicksort(nn_d, nn_x, 0, knn-1);
 
 	return;
 }
@@ -48,16 +50,19 @@ void compute_knn_brute_force(double **xdata, double *q, int npat, int lpat, int 
 /* compute an approximation based on the values of the neighbors */
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
-	int i;
-	double sum_v = 0.0;
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
 
-// #pragma omp parallel for reduction(+:sum_v)
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
+    double sum_wv = 0.0;
+    double sum_w = 0.0;
+    double w;
 
-	return sum_v/knn;
+    for (int i = 0; i < knn; i++) {
+        w = 1.0 / (dist[i] + EPSILON);
+        sum_wv += w * ydata[i];
+        sum_w += w;
+    }
+
+    return sum_wv / sum_w;
 }
 
 
@@ -150,7 +155,7 @@ int main(int argc, char *argv[])
 
     t_total_0 = gettime();
 
-#pragma omp parallel for reduction(+:err_sum) reduction(+:sse) private(t0, t1)
+#pragma omp parallel for reduction(+:err_sum) reduction(+:sse) private(t0, t1) shared(y, x)
     for (int i=0;i<QUERYELEMS;i++) {	/* requests */
 
         t0 = gettime();

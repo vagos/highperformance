@@ -20,8 +20,6 @@ static double ydata[TRAINELEMS];
 double predict_value(int dim, int knn, double *xdata, double *ydata, double *point, double *dist)
 {
 	// plain mean (other possible options: inverse distance weight, closest value inheritance)
-
-    /*
     double sum_wv = 0.0;
     double sum_w = 0.0;
     double w;
@@ -33,16 +31,6 @@ double predict_value(int dim, int knn, double *xdata, double *ydata, double *poi
     }
 
     return sum_wv / sum_w;
-    */        
-
-
-	int i;
-	double sum_v = 0.0;
-	for (i = 0; i < knn; i++) {
-		sum_v += ydata[i];
-	}
-
-	return sum_v/knn;
 }
 
 int main(int argc, char *argv[])
@@ -138,12 +126,11 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		// sort the knn list 
-		quicksort(&nn_d[i*MAX_NNB], &nn_x[i*MAX_NNB], 0, knn-1);
+		// sort the knn list (not needed)
 	}
 	
 
-	// // compute the predicted values
+	// compute the predicted values
     #pragma omp parallel for schedule(static) shared(y_pred, x, xdata, ydata, nn_x)
 	for (int i = 0; i < QUERYELEMS; i++) {
 		int knn = NNBS;
@@ -172,13 +159,13 @@ int main(int argc, char *argv[])
 	t1 = gettime();
 	t_sum += (t1-t0);
 
-	// // compute the error
+	// compute the error
 	for (int i = 0; i < QUERYELEMS; i++) {
 		sse_arr[i] = (y[i]-y_pred[i])*(y[i]-y_pred[i]);
 		err_arr[i] = 100.0*fabs((y[i]-y_pred[i])/y[i]);
 	}
 
-	// // compute the average error
+	// compute the average error
 	double sse = 0.0;
 	double err_sum = 0.0;
 	for (int i = 0; i < QUERYELEMS; i++) {
