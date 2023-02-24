@@ -2,7 +2,7 @@
 
 make
 
-./gen_data x.txt q.txt 
+./gendata x.txt q.txt 
 
 ./myknn-<type> x.txt q.txt
 
